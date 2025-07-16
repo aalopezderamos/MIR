@@ -63,6 +63,15 @@ st.markdown(
         .stDataFrame > div, .stMarkdown table {
           overflow-x: auto !important;
         }
+                /* ── hide the Order Builder header (inline bg-color #E1CCF0) ── */
+        div[style*="#E1CCF0"] {
+          display: none !important;
+        }
+
+        /* ── hide the Ag-Grid editor that st.data_editor emits ── */
+        .ag-root-wrapper {
+          display: none !important;
+        }
       }
     </style>
     """,
