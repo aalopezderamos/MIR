@@ -26,7 +26,7 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-      /* override the default page background */
+      /* 0) base background override */
       .stApp {
         background-color: #ffffff !important;
       }
@@ -60,13 +60,12 @@ st.markdown(
           overflow-x: auto !important;
         }
 
-        /* 4) hide the Order Builder header */
-        .stMarkdown div[style*="#E1CCF0"] {
+        /* 4) hide the Order Builder header (bg-color #E1CCF0) */
+        div[style*="#E1CCF0"] {
           display: none !important;
         }
-
-        /* 5) hide the entire Order Builder editor */
-        [data-testid="stDataEditor"] {
+        /* 5) hide the very next div (the data_editor grid) */
+        div[style*="#E1CCF0"] + div {
           display: none !important;
         }
       }
