@@ -287,7 +287,7 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
     """Display the overview and order builder sections in a single table, with foldable headers."""
     key = f"{supplier}_overview"
 
-    # ─── 1. Load or initialize session-state DataFrame ─────────────────────────
+    # 1. Load or initialize session-state DataFrame
     if key in st.session_state:
         df = st.session_state[key].copy()
     else:
@@ -301,7 +301,7 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         next_delivery = today + timedelta(days=defaults["days_to_add"])
         next_str = next_delivery.strftime("%m/%d/%Y")
 
-        # initialize builder defaults safely
+        # initialize builder defaults
         for col, default in [
             ("Target DOH", defaults["target_doh"]),
             ("Order Qty", defaults["order_qty"]),
@@ -309,10 +309,7 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
             ("Delivery Date", next_str),
             ("Next Delivery Date", next_str),
         ]:
-            if col in df.columns:
-                df[col] = df[col].replace("", default)
-            else:
-                df[col] = default
+            df[col] = df.get(col, default).replace("", default)
 
         # convert & compute fields
         df["Next Delivery Date"] = pd.to_datetime(df["Next Delivery Date"], errors="coerce")
@@ -323,252 +320,217 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
 
         st.session_state[key] = df.copy()
 
-    # ─── 2. Overview header (foldable) ─────────────────────────────────────────
-    st.markdown(f"""
-<details>
-  <summary style="
-      background-color:{CONFIG['colors']['overview']};
-      padding:10px;
-      border-radius:8px;
-      margin-bottom:0;
-      font-size:1.25rem;
-      font-weight:600;
-      cursor:pointer;
-    ">
-    Overview
-  </summary>
-""", unsafe_allow_html=True)
+    # 2. Overview expander
+    with st.expander("Overview", expanded=False):
+        # prepare display DataFrame
+        disp_df = st.session_state[key].reset_index(drop=True)
+        disp_df.index = disp_df.index + 1
 
-    # Reset index, hyperlink, styling, and render
-    df = st.session_state[key].reset_index(drop=True)
-    df.index = df.index + 1
-    if "Product Num" in df.columns:
-        df["Product Num"] = (
-            pd.to_numeric(df["Product Num"], errors="coerce").round(0).fillna(0).astype(int).astype(str)
-        ).apply(lambda x: (
-            f'<a href="https://sbsabs.encompass8.com/Home?DashboardID=100018&ProductID={x}" target="_blank">{x}</a>'
-        ))
+        # hyperlink Product Num
+        if "Product Num" in disp_df.columns:
+            disp_df["Product Num"] = (
+                pd.to_numeric(disp_df["Product Num"], errors="coerce")
+                  .round(0)
+                  .fillna(0)
+                  .astype(int)
+                  .astype(str)
+            ).apply(lambda x: (
+                f'<a href="https://sbsabs.encompass8.com/Home?DashboardID=100018&ProductID={x}" '
+                f'target="_blank">{x}</a>'
+            ))
 
-    # Style rules for ROS, Product Name, OOS Risk
-    df["ROS"] = df["ROS"].round(1)
-    ros_min, ros_max = df["ROS"].min(), df["ROS"].max()
-    ros_range = ros_max - ros_min or 1
-    green_rgb = (99, 190, 123)
-    ros_colors = df["ROS"].apply(lambda v: (
-        f"background-color: rgb({int(255 - (255 - green_rgb[0]) * (v - ros_min) / ros_range)},"
-        f"{int(255 - (255 - green_rgb[1]) * (v - ros_min) / ros_range)},"
-        f"{int(255 - (255 - green_rgb[2]) * (v - ros_min) / ros_range)})"
-    ) if v > 0 else "")
+        # style rules
+        disp_df["ROS"] = disp_df["ROS"].round(1)
+        ros_min, ros_max = disp_df["ROS"].min(), disp_df["ROS"].max()
+        ros_range = ros_max - ros_min or 1
+        green_rgb = (99, 190, 123)
+        ros_colors = disp_df["ROS"].apply(lambda v: (
+            f"background-color: rgb({int(255 - (255 - green_rgb[0]) * (v - ros_min) / ros_range)},"
+            f"{int(255 - (255 - green_rgb[1]) * (v - ros_min) / ros_range)},"
+            f"{int(255 - (255 - green_rgb[2]) * (v - ros_min) / ros_range)})"
+        ) if v > 0 else "")
 
-    def product_name_color(row):
-        doh, coh, ros = row["Days of Inventory"], row["COH"], row["ROS"]
-        if (pd.isna(ros) or ros == 0) and (pd.isna(coh) or coh == 0):
-            return "color: red"
-        if doh >= 30:
-            return "background-color: #9BC2E5"
-        if doh > 16:
-            return "background-color: #C6EFCE"
-        if doh > 10:
-            return "background-color: #FFEB9C"
-        return "background-color: #FFC7CE"
+        def product_name_color(row):
+            doh, coh, ros = row["Days of Inventory"], row["COH"], row["ROS"]
+            if (pd.isna(ros) or ros == 0) and (pd.isna(coh) or coh == 0):
+                return "color: red"
+            if doh >= 30:
+                return "background-color: #9BC2E5"
+            if doh > 16:
+                return "background-color: #C6EFCE"
+            if doh > 10:
+                return "background-color: #FFEB9C"
+            return "background-color: #FFC7CE"
 
-    def oos_risk_color(val):
-        return "color: red" if val > 0 else "color: green"
+        def oos_risk_color(val):
+            return "color: red" if val > 0 else "color: green"
 
-    overview_cols = ["Product Num", "Product Name", "COH", "ROS", "Days of Inventory", "OOS Risk"]
-    styled_df = (
-        df[overview_cols]
-          .style
-          .apply(lambda _: ros_colors, subset=["ROS"])
-          .apply(lambda row: [product_name_color(row) if col == "Product Name" else "" for col in overview_cols], axis=1)
-          .applymap(oos_risk_color, subset=["OOS Risk"])
-          .format({"ROS": "{:.1f}", "COH": "{:.0f}", "Days of Inventory": "{:.1f}", "OOS Risk": "{:.0f}"})
-          .set_table_styles([{"selector": "th.row_heading, td.row_heading", "props": [("font-weight", "normal")] }])
-    )
-    html = styled_df.to_html(index=True, index_names=False, escape=False)
-    st.markdown(html, unsafe_allow_html=True)
+        overview_cols = ["Product Num", "Product Name", "COH", "ROS",
+                         "Days of Inventory", "OOS Risk"]
+        styled = (
+            disp_df[overview_cols]
+              .style
+              .apply(lambda _: ros_colors, subset=["ROS"])
+              .apply(lambda row: [product_name_color(row)
+                  if col == "Product Name" else "" for col in overview_cols], axis=1)
+              .applymap(oos_risk_color, subset=["OOS Risk"])
+              .format({"ROS": "{:.1f}", "COH": "{:.0f}",
+                       "Days of Inventory": "{:.1f}", "OOS Risk": "{:.0f}"})
+              .set_table_styles([
+                  {"selector": "th.row_heading, td.row_heading",
+                   "props": [("font-weight", "normal")]}
+              ])
+        )
+        html = styled.to_html(index=True, index_names=False, escape=False)
+        st.markdown(html, unsafe_allow_html=True)
 
-    st.markdown("</details>", unsafe_allow_html=True)
+    # 3. Order Builder expander
+    with st.expander("Order Builder", expanded=False):
+        # CSS tweaks for the data editor
+        st.markdown("""
+        <style>
+          .ag-cell { white-space: normal !important; line-height: 1.3 !important; }
+          .ag-cell[col-id=\"Product Name\"], .ag-header-cell-label[col-id=\"Product Name\"] {
+            white-space: nowrap !important;
+          }
+          .ag-root-wrapper { width: 100% !important; }
+          .ag-cell[col-id=\"To Order\"], .ag-header-cell[col-id=\"To Order\"] {
+            background-color: yellow !important;
+          }
+        </style>
+        """, unsafe_allow_html=True)
 
-    # ─── 7. Order Builder header (foldable) ──────────────────────────────────
-    st.markdown(f"""
-<details>
-  <summary style="
-      background-color:{CONFIG['colors']['order_builder']};
-      padding:10px;
-      border-radius:8px;
-      margin-bottom:0;
-      font-size:1.25rem;
-      font-weight:600;
-      cursor:pointer;
-    ">
-    Order Builder
-  </summary>
-""", unsafe_allow_html=True)
+        editor_df = disp_df.copy()
+        round_cols = ["Target DOH", "Days Until Next Delivery",
+                      "Projected Inventory", "Target Inventory",
+                      "To Order", "Order Qty"]
+        editor_df[round_cols] = editor_df[round_cols].round(0)
 
-    # Builder CSS tweaks
-    st.markdown("""
-    <style>
-      .ag-cell { white-space: normal !important; line-height: 1.3 !important; }
-      .ag-cell[col-id="Product Name"], .ag-header-cell-label[col-id="Product Name"] {
-        white-space: nowrap !important;
-      }
-      .ag-root-wrapper { width: 100% !important; }
-      .ag-cell[col-id="To Order"], .ag-header-cell[col-id="To Order"] {
-        background-color: yellow !important;
-      }
-    </style>
-    """, unsafe_allow_html=True)
+        cols = ["Product Name", "Target DOH", "Next Delivery Date",
+                "Days Until Next Delivery", "Projected Inventory",
+                "Target Inventory", "To Order", "Order Qty",
+                "PO Number", "Delivery Date"]
+        edited = st.data_editor(
+            editor_df[cols],
+            key=f"{supplier}_builder",
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Product Name": column_config.Column(disabled=True),
+                "Target DOH": column_config.NumberColumn(min_value=0, max_value=100,
+                                                         step=1, format="%.0f"),
+                "Next Delivery Date": column_config.DateColumn(format="MM/DD/YYYY"),
+                "Days Until Next Delivery": column_config.NumberColumn(disabled=True, format="%.0f"),
+                "Projected Inventory": column_config.NumberColumn(disabled=True, format="%.0f"),
+                "Target Inventory": column_config.NumberColumn(disabled=True, format="%.0f"),
+                "To Order": column_config.NumberColumn(disabled=True, format="%.0f"),
+                "Order Qty": column_config.NumberColumn(format="%.0f"),
+                "PO Number": column_config.TextColumn(),
+                "Delivery Date": column_config.DateColumn(format="MM/DD/YYYY"),
+            },
+            num_rows="dynamic"
+        )
 
-    builder_df = df.reset_index(drop=True).copy()
-    builder_df.index = builder_df.index + 1
-    round_cols = ["Target DOH", "Days Until Next Delivery", "Projected Inventory", "Target Inventory", "To Order", "Order Qty"]
-    builder_df[round_cols] = builder_df[round_cols].round(0)
+        if st.button("Refresh Calculations", key=f"{supplier}_refresh"):
+            df.update(edited)
+            df = recompute_fields(df)
+            st.session_state[key] = df.copy()
+            st.rerun()
 
-    builder_cols = ["Product Name", "Target DOH", "Next Delivery Date", "Days Until Next Delivery", "Projected Inventory", "Target Inventory", "To Order", "Order Qty", "PO Number", "Delivery Date"]
-    edited_df = st.data_editor(
-        builder_df[builder_cols],
-        key=f"{supplier}_builder", use_container_width=True, hide_index=True,
-        column_config={
-            "Product Name": column_config.Column(disabled=True),
-            "Target DOH": column_config.NumberColumn(min_value=0, max_value=100, step=1, format="%.0f"),
-            "Next Delivery Date": column_config.DateColumn(format="MM/DD/YYYY"),
-            "Days Until Next Delivery": column_config.NumberColumn(disabled=True, format="%.0f"),
-            "Projected Inventory": column_config.NumberColumn(disabled=True, format="%.0f"),
-            "Target Inventory": column_config.NumberColumn(disabled=True, format="%.0f"),
-            "To Order": column_config.NumberColumn(disabled=True, format="%.0f"),
-            "Order Qty": column_config.NumberColumn(format="%.0f"),
-            "PO Number": column_config.TextColumn(),
-            "Delivery Date": column_config.DateColumn(format="MM/DD/YYYY"),
-        },
-        num_rows="dynamic"
-    )
-
-    if st.button("Refresh Calculations", key=f"{supplier}_refresh"):
-        df.update(edited_df)
-        df = recompute_fields(df)
-        st.session_state[key] = df.copy()
-        st.rerun()
-
-    # Store for export
-    st.session_state.setdefault("export_data", {})[key] = df
-
-    st.markdown("</details>", unsafe_allow_html=True)
+        # Store for export
+        st.session_state.setdefault("export_data", {})[key] = df.copy()
 
 def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col):
-    """Display POs, Shipments, and Notes for a given supplier in separate tabs, with a foldable header."""
-    # ─── Foldable Header ─────────────────────────────────────────────────────
-    st.markdown(f"""
-<details>
-  <summary style="
-      background-color:{CONFIG['colors']['po']};
-      padding:10px;
-      border-radius:8px;
-      margin-bottom:0;
-      font-size:1.25rem;
-      font-weight:600;
-      cursor:pointer;
-    ">
-    POs, Shipments & Notes
-  </summary>
-""", unsafe_allow_html=True)
-
-    # ─── Three tabs inside foldable section ───────────────────────────────────
-    tab_po, tab_ship, tab_notes = st.tabs(["🖨️ POs", "🚚 Shipments", "🗒️ Notes"])
-
-    # ——— POs Tab ————————————————————————————————————————————————————————
+    """Display POs, Shipments, and Notes for a given supplier in separate tabs, with an expander."""
+    # initialize defaults
     po_count, po_numbers = 0, []
-    with tab_po:
-        mask = (
-            (po_df[po_col] == supplier)
-            & po_df["PO Num"].notna()
-            & po_df["PO Num"].astype(str).str.strip().astype(bool)
-        )
-        supplier_pos = po_df.loc[mask]
 
-        if supplier_pos.empty:
-            st.info("No open POs for this supplier.")
-        else:
-            po_count = supplier_pos["PO Num"].nunique()
-            po_numbers = sorted(
-                supplier_pos["PO Num"]
-                    .dropna()
-                    .astype(str)
-                    .str.strip()
-                    .loc[lambda s: s != ""]
-                    .unique()
+    # Foldable section using Streamlit expander
+    with st.expander("POs, Shipments & Notes", expanded=False):
+        tab_po, tab_ship, tab_notes = st.tabs(["🖨️ POs", "🚚 Shipments", "🗒️ Notes"])
+
+        # ——— POs Tab —————————————————————————————————————————————————
+        with tab_po:
+            mask = (
+                (po_df[po_col] == supplier)
+                & po_df.get("PO Num", pd.Series()).notna()
+                & po_df["PO Num"].astype(str).str.strip().astype(bool)
             )
-            st.markdown(f"**{po_count} Open POs**")
+            supplier_pos = po_df.loc[mask]
 
-            for po_num in po_numbers:
-                purchase_series = supplier_pos.loc[
-                    supplier_pos["PO Num"] == po_num, "Purchase ID"
-                ].dropna()
-                if not purchase_series.empty:
-                    raw_pid = purchase_series.iloc[0]
-                    pid = (str(int(raw_pid)) if isinstance(raw_pid, (float, np.floating))
-                           else str(raw_pid).strip())
-                else:
-                    pid = ""
-                link = f"https://sbsabs.encompass8.com/Home?DashboardID=168160&KeyValue={pid}"
-                st.markdown(f"[🧾 PO #{po_num}]({link})", unsafe_allow_html=True)
-
-                det_cols = [c for c in ["Purchase ID", "Receive Date", "Product", "Ordered"] if c in supplier_pos.columns]
-                det = supplier_pos[supplier_pos["PO Num"] == po_num][det_cols].copy()
-                if "Receive Date" in det.columns:
-                    det["Receive Date"] = pd.to_datetime(det["Receive Date"], errors="coerce")
-                    det["Receive Date"] = det["Receive Date"].dt.strftime("%m/%d/%Y").fillna("")
-                st.dataframe(det, use_container_width=True)
-
-    # ——— Shipments Tab ——————————————————————————————————————————————————
-    with tab_ship:
-        desired = [
-            "Product Num",
-            "Product Name",
-            "First Shipment",
-            "Second Shipment",
-            "Third Shipment"
-        ]
-        cols = [c for c in desired if c in overview_df.columns]
-
-        if overview_df.empty or overview_col is None or not {"Product Num","Product Name"}.issubset(cols):
-            st.info("No shipment information available for this supplier.")
-        else:
-            ship_df = overview_df.loc[
-                overview_df[overview_col] == supplier,
-                cols
-            ].copy()
-
-            date_cols = [c for c in ["First Shipment", "Second Shipment", "Third Shipment"] if c in ship_df.columns]
-            if date_cols:
-                ship_df = ship_df.dropna(how="all", subset=date_cols)
-
-            if ship_df.empty:
-                st.info("No upcoming shipments recorded.")
+            if supplier_pos.empty:
+                st.info("No open POs for this supplier.")
             else:
-                st.dataframe(ship_df, use_container_width=True)
+                po_count = supplier_pos["PO Num"].nunique()
+                po_numbers = sorted(
+                    supplier_pos["PO Num"].dropna().astype(str).unique()
+                )
+                st.markdown(f"**{po_count} Open POs**")
+                for po_num in po_numbers:
+                    # build link to PO dashboard
+                    purchase_series = supplier_pos.loc[
+                        supplier_pos["PO Num"] == po_num, "Purchase ID"
+                    ].dropna()
+                    if not purchase_series.empty:
+                        raw_pid = purchase_series.iloc[0]
+                        pid = str(int(raw_pid)) if isinstance(raw_pid, (float, np.floating)) else str(raw_pid).strip()
+                    else:
+                        pid = ""
+                    link = (
+                        f"https://sbsabs.encompass8.com/Home?DashboardID=168160&KeyValue={pid}"
+                    )
+                    st.markdown(f"[🧾 PO #{po_num}]({link})", unsafe_allow_html=True)
 
-    # —── Notes Tab —────────────────────────────────────────────────────────────
-    with tab_notes:
-        st.markdown(
-            """
-            <div style='background-color:#FFF8DC; padding:10px; border-radius:8px; margin-top:0;'>
-              <strong>Notes & Next Steps:</strong>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        st.text_area(
-            label="",
-            placeholder="Type your notes here...",
-            height=150,
-            key=f"{supplier}_notes"
-        )
+                    # detail table per PO
+                    det_cols = [c for c in ["Purchase ID", "Receive Date", "Product", "Ordered"]
+                                if c in supplier_pos.columns]
+                    det = supplier_pos[supplier_pos["PO Num"] == po_num][det_cols].copy()
+                    if "Receive Date" in det.columns:
+                        det["Receive Date"] = (
+                            pd.to_datetime(det["Receive Date"], errors="coerce")
+                              .dt.strftime("%m/%d/%Y").fillna("")
+                        )
+                    st.dataframe(det, use_container_width=True)
 
-    # ─── Close foldable section ────────────────────────────────────────────────
-    st.markdown("</details>", unsafe_allow_html=True)
+        # ——— Shipments Tab ——————————————————————————————————————————————————
+        with tab_ship:
+            desired = ["Product Num", "Product Name", "First Shipment", "Second Shipment", "Third Shipment"]
+            cols = [c for c in desired if c in overview_df.columns]
 
-    # ─── Return PO info after all sections have rendered ────────────────────────
+            if overview_df.empty or overview_col is None or not {"Product Num", "Product Name"}.issubset(cols):
+                st.info("No shipment information available for this supplier.")
+            else:
+                ship_df = overview_df.loc[
+                    overview_df[overview_col] == supplier,
+                    cols
+                ].copy()
+
+                date_cols = [c for c in ["First Shipment", "Second Shipment", "Third Shipment"] if c in ship_df.columns]
+                if date_cols:
+                    ship_df = ship_df.dropna(how="all", subset=date_cols)
+
+                if ship_df.empty:
+                    st.info("No upcoming shipments recorded.")
+                else:
+                    st.dataframe(ship_df, use_container_width=True)
+
+        # ——— Notes Tab ——————————————————————————————————————————————————
+        with tab_notes:
+            st.markdown(
+                """
+                <div style='background-color:#FFF8DC; padding:10px; border-radius:8px;'>
+                  <strong>Notes & Next Steps:</strong>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            st.text_area(
+                label="",
+                placeholder="Type your notes here...",
+                height=150,
+                key=f"{supplier}_notes"
+            )
+
     return po_count, po_numbers
 
 def display_supplier(supplier, supplier_df, po_df, overview_df, supplier_col, po_col, overview_col):
