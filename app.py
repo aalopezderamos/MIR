@@ -518,6 +518,7 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
                             pd.to_datetime(det["Receive Date"], errors="coerce")
                               .dt.strftime("%m/%d/%Y").fillna("")
                         )
+                    det = det.reset_index(drop=True)
                     st.dataframe(det, use_container_width=True)
 
         # ——— Shipments Tab ——————————————————————————————————————————————————
@@ -540,7 +541,8 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
                 if ship_df.empty:
                     st.info("No upcoming shipments recorded.")
                 else:
-                    st.dataframe(ship_df, use_container_width=True)
+                    det = det.reset_index(drop=True)
+                    st.dataframe(det, use_container_width=True)
 
         # ——— Notes Tab ——————————————————————————————————————————————————
         with tab_notes:
