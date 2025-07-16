@@ -18,6 +18,36 @@ import requests
 from PIL import Image
 import requests
 
+
+# ==================== CONSTANTS ====================
+CONFIG = {
+    "export": {
+        "ship_to": "SILVER EAGLE BEVERAGES LLC-TX (SAN ANTON)",
+        "ship_to_num": "2225590",
+        "load_type": "Truck",
+        "status": "Open",
+        "cols": [
+            "#", "Ship To Location", "Ship To Location Number", "Delivery #", "Delivery PO",
+            "Load Type", "Shipment Status", "Item Description", "Item SKU", "Order Qty",
+            "MSO #", "Req Delivery Date", "Promised Ship Date", "Actual Ship Date"
+        ]
+    },
+    "defaults": {
+        "target_doh": 22,
+        "order_qty": 0,
+        "po_number": "",
+        "days_to_add": 14
+    },
+    "colors": {
+        "overview":     "#E2EFDA",  # table header
+        "ros":          "#63BE7B",  # ROS column highlight
+        "to_order":     "#FFFF00",  # “To Order” column highlight
+        "po":           "#FFF2CC",
+        "order_builder":"#E1CCF0"
+    },
+    "gpt_model": "gpt-4"
+}
+
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
     page_title="SEB Supplier Overview", 
@@ -91,35 +121,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-# ==================== CONSTANTS ====================
-CONFIG = {
-    "export": {
-        "ship_to": "SILVER EAGLE BEVERAGES LLC-TX (SAN ANTON)",
-        "ship_to_num": "2225590",
-        "load_type": "Truck",
-        "status": "Open",
-        "cols": [
-            "#", "Ship To Location", "Ship To Location Number", "Delivery #", "Delivery PO",
-            "Load Type", "Shipment Status", "Item Description", "Item SKU", "Order Qty",
-            "MSO #", "Req Delivery Date", "Promised Ship Date", "Actual Ship Date"
-        ]
-    },
-    "defaults": {
-        "target_doh": 22,
-        "order_qty": 0,
-        "po_number": "",
-        "days_to_add": 14
-    },
-    "colors": {
-        "overview":     "#E2EFDA",  # table header
-        "ros":          "#63BE7B",  # ROS column highlight
-        "to_order":     "#FFFF00",  # “To Order” column highlight
-        "po":           "#FFF2CC",
-        "order_builder":"#E1CCF0"
-    },
-    "gpt_model": "gpt-4"
-}
 # ─── Remote file URL ───────────────────────────────────────────────
 GITHUB_RAW_URL = (
     "https://raw.githubusercontent.com/"
