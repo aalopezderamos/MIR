@@ -24,46 +24,73 @@ st.set_page_config(
     layout="wide"
 )
 st.markdown(
-    """
+    f"""
     <style>
       /* 0) base background override */
-      .stApp {
+      .stApp {{
         background-color: #ffffff !important;
-      }
+      }}
 
-      @media only screen and (orientation: portrait) {
+      @media only screen and (orientation: portrait) {{
         /* stack columns */
-        .stColumns {
+        .stColumns {{
           display: flex !important;
           flex-direction: column !important;
-        }
-        .stColumns > div {
+        }}
+        .stColumns > div {{
           width: 100% !important;
-        }
+        }}
 
         /* shrink stDataFrame tables */
-        .stDataFrame table {
+        .stDataFrame table {{
           font-size: 0.8em !important;
           transform-origin: top left;
-        }
-        .stDataFrame th, .stDataFrame td {
+        }}
+        .stDataFrame th, .stDataFrame td {{
           padding: 4px 6px !important;
-        }
+        }}
 
         /* shrink markdown (Overview) tables, too */
-        .stMarkdown table {
+        .stMarkdown table {{
           font-size: 0.8em !important;
           transform-origin: top left;
-        }
-        .stMarkdown th, .stMarkdown td {
+        }}
+        .stMarkdown th, .stMarkdown td {{
           padding: 4px 6px !important;
-        }
+        }}
 
         /* allow horizontal scroll if needed */
-        .stDataFrame > div, .stMarkdown table {
+        .stDataFrame > div, .stMarkdown table {{
           overflow-x: auto !important;
-        }
-      }
+        }}
+      }}
+
+      /* ─── GLOBAL EXPANDER HEADER STYLES ───────────────────────────────── */
+      /* Overview expander header (all states) */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
+        background-color: {CONFIG['colors']['overview']} !important;
+        padding: 10px !important;
+        border-radius: 8px !important;
+        margin-bottom: 0 !important;
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+      }}
+
+      /* Order Builder expander header */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
+        background-color: {CONFIG['colors']['order_builder']} !important;
+      }}
+
+      /* POs, Shipments & Notes expander header */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
+        background-color: {CONFIG['colors']['po']} !important;
+      }}
+
+      /* Ensure expanded state stays colored */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
+        background-color: inherit !important;
+      }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -323,26 +350,6 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
 
         st.session_state[key] = df.copy()
 
-    # 2. Overview expander header styling
-    st.markdown(f"""
-    <style>
-      /* collapsed state */
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="false"] {{
-        background-color: {CONFIG['colors']['overview']} !important;
-        padding: 10px !important;
-        border-radius: 8px !important;
-        margin-bottom: 0 !important;
-        font-size: 1.25rem !important;
-        font-weight: 600 !important;
-        cursor: pointer !important;
-      }}
-      /* expanded state */
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
-        background-color: {CONFIG['colors']['overview']} !important;
-      }}
-    </style>
-    """, unsafe_allow_html=True)
-
     # 3. Overview expander
     with st.expander("Overview", expanded=False):
         disp_df = st.session_state[key].reset_index(drop=True)
@@ -406,26 +413,6 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         html = styled.to_html(index=True, index_names=False, escape=False)
         st.markdown(html, unsafe_allow_html=True)
 
-    # 4. Order Builder expander header styling
-    st.markdown(f"""
-    <style>
-      /* collapsed state */
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="false"] {{
-        background-color: {CONFIG['colors']['order_builder']} !important;
-        padding: 10px !important;
-        border-radius: 8px !important;
-        margin-bottom: 0 !important;
-        font-size: 1.25rem !important;
-        font-weight: 600 !important;
-        cursor: pointer !important;
-      }}
-      /* expanded state */
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
-        background-color: {CONFIG['colors']['order_builder']} !important;
-      }}
-    </style>
-    """, unsafe_allow_html=True)
-
     # 5. Order Builder expander
     with st.expander("Order Builder", expanded=False):
         st.markdown(
@@ -488,26 +475,6 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
     """Display POs, Shipments, and Notes for a given supplier in separate tabs, with an expander."""
     # initialize defaults
     po_count, po_numbers = 0, []
-
-    # Foldable section using Streamlit expander
-    st.markdown(f"""
-    <style>
-      /* collapsed state */
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="false"] {{
-        background-color: {CONFIG['colors']['po']} !important;
-        padding: 10px !important;
-        border-radius: 8px !important;
-        margin-bottom: 0 !important;
-        font-size: 1.25rem !important;
-        font-weight: 600 !important;
-        cursor: pointer !important;
-      }}
-      /* expanded state */
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
-        background-color: {CONFIG['colors']['po']} !important;
-      }}
-    </style>
-    """, unsafe_allow_html=True)
 
     # Foldable section using Streamlit expander
     with st.expander("POs, Shipments & Notes", expanded=False):
