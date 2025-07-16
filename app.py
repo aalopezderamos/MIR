@@ -327,13 +327,13 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
     st.markdown(f"""
     <style>
       section[data-baseweb=\"expander\"] > div:first-child {{
-        background-color: {CONFIG['colors']['overview']};
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-        cursor: pointer;
+        background-color: {CONFIG['colors']['overview']} !important;
+        padding: 10px !important;
+        border-radius: 8px !important;
+        margin-bottom: 0 !important;
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
       }}
     </style>
     """, unsafe_allow_html=True)
@@ -405,13 +405,13 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
     st.markdown(f"""
     <style>
       section[data-baseweb=\"expander\"] > div:first-child {{
-        background-color: {CONFIG['colors']['order_builder']};
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-        cursor: pointer;
+        background-color: {CONFIG['colors']['order_builder']} !important;
+        padding: 10px !important;
+        border-radius: 8px !important;
+        margin-bottom: 0 !important;
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
       }}
     </style>
     """, unsafe_allow_html=True)
@@ -483,13 +483,13 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
     st.markdown(f"""
     <style>
       section[data-baseweb="expander"] > div:first-child {{
-        background-color: {CONFIG['colors']['po']};
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-        cursor: pointer;
+        background-color: {CONFIG['colors']['po']} !important;
+        padding: 10px !important;
+        border-radius: 8px !important;
+        margin-bottom: 0 !important;
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
       }}
     </style>
     """, unsafe_allow_html=True)
