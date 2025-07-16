@@ -284,8 +284,7 @@ def display_min_order_progress(supplier_df, supplier_col, supplier, font_size=18
         return 0
 
 def display_overview_and_builder(supplier, overview_df, overview_col):
-    """Display the overview and order builder sections in a single table, with Product Num as a hyperlink,
-       and with a 1-based, un-bolded index column."""
+    """Display the overview and order builder sections in a single table, with foldable headers."""
     key = f"{supplier}_overview"
 
     # ─── 1. Load or initialize session-state DataFrame ─────────────────────────
@@ -311,10 +310,8 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
             ("Next Delivery Date", next_str),
         ]:
             if col in df.columns:
-                # only replace blank strings in an existing column
                 df[col] = df[col].replace("", default)
             else:
-                # create the column filled with the default value
                 df[col] = default
 
         # convert & compute fields
@@ -326,36 +323,39 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
 
         st.session_state[key] = df.copy()
 
-    # ─── 2. Overview header ─────────────────────────────────────────────────────
-    st.markdown(
-        f"<div style='background-color:{CONFIG['colors']['overview']};"
-        "padding:10px;border-radius:8px;margin-bottom:10px;'>"
-        "<h4 style='margin:0;'>Overview</h4></div>",
-        unsafe_allow_html=True
-    )
+    # ─── 2. Overview header (foldable) ─────────────────────────────────────────
+    st.markdown(f"""
+<details>
+  <summary style="
+      background-color:{CONFIG['colors']['overview']};
+      padding:10px;
+      border-radius:8px;
+      margin-bottom:0;
+      font-size:1.25rem;
+      font-weight:600;
+      cursor:pointer;
+    ">
+    Overview
+  </summary>
+""", unsafe_allow_html=True)
 
-    # ─── 3. Reset index, make it 1-based, and drop old index ──────────────────
-    df = df.reset_index(drop=True)
-    df.index = df.index + 1  # make index start at 1
-
-    # ─── 4. Hyperlink Product Num ─────────────────────────────────────────────
+    # Reset index, hyperlink, styling, and render
+    df = st.session_state[key].reset_index(drop=True)
+    df.index = df.index + 1
     if "Product Num" in df.columns:
         df["Product Num"] = (
-            pd.to_numeric(df["Product Num"], errors="coerce")
-              .round(0).fillna(0).astype(int).astype(str)
+            pd.to_numeric(df["Product Num"], errors="coerce").round(0).fillna(0).astype(int).astype(str)
         ).apply(lambda x: (
-            f'<a href="https://sbsabs.encompass8.com/'
-            f'Home?DashboardID=100018&ProductID={x}" target="_blank">{x}</a>'
+            f'<a href="https://sbsabs.encompass8.com/Home?DashboardID=100018&ProductID={x}" target="_blank">{x}</a>'
         ))
 
-    # ─── 5. Style rules ────────────────────────────────────────────────────────
+    # Style rules for ROS, Product Name, OOS Risk
     df["ROS"] = df["ROS"].round(1)
     ros_min, ros_max = df["ROS"].min(), df["ROS"].max()
     ros_range = ros_max - ros_min or 1
     green_rgb = (99, 190, 123)
     ros_colors = df["ROS"].apply(lambda v: (
-        f"background-color: rgb("
-        f"{int(255 - (255 - green_rgb[0]) * (v - ros_min) / ros_range)},"
+        f"background-color: rgb({int(255 - (255 - green_rgb[0]) * (v - ros_min) / ros_range)},"
         f"{int(255 - (255 - green_rgb[1]) * (v - ros_min) / ros_range)},"
         f"{int(255 - (255 - green_rgb[2]) * (v - ros_min) / ros_range)})"
     ) if v > 0 else "")
@@ -380,44 +380,33 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         df[overview_cols]
           .style
           .apply(lambda _: ros_colors, subset=["ROS"])
-          .apply(lambda row: [
-              product_name_color(row) if col == "Product Name" else ""
-              for col in overview_cols
-          ], axis=1)
+          .apply(lambda row: [product_name_color(row) if col == "Product Name" else "" for col in overview_cols], axis=1)
           .applymap(oos_risk_color, subset=["OOS Risk"])
-          .format({
-              "ROS": "{:.1f}",
-              "COH": "{:.0f}",
-              "Days of Inventory": "{:.1f}",
-              "OOS Risk": "{:.0f}"
-          })
-          # un-bold the index column
-          .set_table_styles([{
-              "selector": "th.row_heading, td.row_heading",
-              "props": [("font-weight", "normal")]
-          }])
+          .format({"ROS": "{:.1f}", "COH": "{:.0f}", "Days of Inventory": "{:.1f}", "OOS Risk": "{:.0f}"})
+          .set_table_styles([{"selector": "th.row_heading, td.row_heading", "props": [("font-weight", "normal")] }])
     )
-
-    # ─── 6. Render the table with visible 1-based index ───────────────────────
-    html = styled_df.to_html(
-        index=True,        # show our custom index
-        index_names=False, # hide the index header
-        escape=False
-    )
+    html = styled_df.to_html(index=True, index_names=False, escape=False)
     st.markdown(html, unsafe_allow_html=True)
 
-    # ─── 7. Order Builder header ─────────────────────────────────────────────
-    st.markdown(
-        f"<div style='background-color:{CONFIG['colors']['order_builder']};"
-        "padding:10px;border-radius:8px;margin-bottom:10px;'>"
-        "<div style='display:flex;justify-content:space-between;align-items:center;'>"
-        "<h4 style='margin:0;'>Order Builder</h4>"
-        "<button style='margin-left:10px;' onclick='window.location.reload()'>"
-        "Refresh Table</button></div></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("</details>", unsafe_allow_html=True)
 
-    # ─── 8. Builder CSS tweaks ────────────────────────────────────────────────
+    # ─── 7. Order Builder header (foldable) ──────────────────────────────────
+    st.markdown(f"""
+<details>
+  <summary style="
+      background-color:{CONFIG['colors']['order_builder']};
+      padding:10px;
+      border-radius:8px;
+      margin-bottom:0;
+      font-size:1.25rem;
+      font-weight:600;
+      cursor:pointer;
+    ">
+    Order Builder
+  </summary>
+""", unsafe_allow_html=True)
+
+    # Builder CSS tweaks
     st.markdown("""
     <style>
       .ag-cell { white-space: normal !important; line-height: 1.3 !important; }
@@ -431,26 +420,15 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
     </style>
     """, unsafe_allow_html=True)
 
-    # ─── 9. Prepare and display the Order Builder editor ─────────────────────
     builder_df = df.reset_index(drop=True).copy()
     builder_df.index = builder_df.index + 1
-    round_cols = [
-        "Target DOH", "Days Until Next Delivery", "Projected Inventory",
-        "Target Inventory", "To Order", "Order Qty"
-    ]
+    round_cols = ["Target DOH", "Days Until Next Delivery", "Projected Inventory", "Target Inventory", "To Order", "Order Qty"]
     builder_df[round_cols] = builder_df[round_cols].round(0)
 
-    builder_cols = [
-        "Product Name", "Target DOH", "Next Delivery Date",
-        "Days Until Next Delivery", "Projected Inventory",
-        "Target Inventory", "To Order", "Order Qty",
-        "PO Number", "Delivery Date"
-    ]
+    builder_cols = ["Product Name", "Target DOH", "Next Delivery Date", "Days Until Next Delivery", "Projected Inventory", "Target Inventory", "To Order", "Order Qty", "PO Number", "Delivery Date"]
     edited_df = st.data_editor(
         builder_df[builder_cols],
-        key=f"{supplier}_builder",
-        use_container_width=True,
-        hide_index=True,  # already handling index ourselves
+        key=f"{supplier}_builder", use_container_width=True, hide_index=True,
         column_config={
             "Product Name": column_config.Column(disabled=True),
             "Target DOH": column_config.NumberColumn(min_value=0, max_value=100, step=1, format="%.0f"),
@@ -472,21 +450,30 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         st.session_state[key] = df.copy()
         st.rerun()
 
-    # ─── 10. Store for export ─────────────────────────────────────────────────
+    # Store for export
     st.session_state.setdefault("export_data", {})[key] = df
 
-def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col):
-    """Display POs, Shipments, and Notes for a given supplier in separate tabs."""
-    # ─── Header bar ─────────────────────────────────────────────────────────────
-    with st.container():
-        st.markdown(f"""
-            <div style='background-color:{CONFIG['colors']['po']};
-                        padding:10px;border-radius:8px;margin-bottom:10px;'>
-              <h4 style='margin:0;'>POs, Shipments & Notes</h4>
-            </div>
-        """, unsafe_allow_html=True)
+    st.markdown("</details>", unsafe_allow_html=True)
 
-    # ─── Three tabs ─────────────────────────────────────────────────────────────
+def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col):
+    """Display POs, Shipments, and Notes for a given supplier in separate tabs, with a foldable header."""
+    # ─── Foldable Header ─────────────────────────────────────────────────────
+    st.markdown(f"""
+<details>
+  <summary style="
+      background-color:{CONFIG['colors']['po']};
+      padding:10px;
+      border-radius:8px;
+      margin-bottom:0;
+      font-size:1.25rem;
+      font-weight:600;
+      cursor:pointer;
+    ">
+    POs, Shipments & Notes
+  </summary>
+""", unsafe_allow_html=True)
+
+    # ─── Three tabs inside foldable section ───────────────────────────────────
     tab_po, tab_ship, tab_notes = st.tabs(["🖨️ POs", "🚚 Shipments", "🗒️ Notes"])
 
     # ——— POs Tab ————————————————————————————————————————————————————————
@@ -519,7 +506,8 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
                 ].dropna()
                 if not purchase_series.empty:
                     raw_pid = purchase_series.iloc[0]
-                    pid = str(int(raw_pid)) if isinstance(raw_pid, (float, np.floating)) else str(raw_pid).strip()
+                    pid = (str(int(raw_pid)) if isinstance(raw_pid, (float, np.floating))
+                           else str(raw_pid).strip())
                 else:
                     pid = ""
                 link = f"https://sbsabs.encompass8.com/Home?DashboardID=168160&KeyValue={pid}"
@@ -577,9 +565,11 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
             key=f"{supplier}_notes"
         )
 
+    # ─── Close foldable section ────────────────────────────────────────────────
+    st.markdown("</details>", unsafe_allow_html=True)
+
     # ─── Return PO info after all sections have rendered ────────────────────────
     return po_count, po_numbers
-
 
 def display_supplier(supplier, supplier_df, po_df, overview_df, supplier_col, po_col, overview_col):
     """Display all information for a single supplier, showing its logo next to the name."""
