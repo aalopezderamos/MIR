@@ -50,7 +50,7 @@ st.markdown(
           padding: 4px 6px !important;
         }}
 
-        /* shrink markdown (Overview) tables, too */
+        /* shrink markdown tables */
         .stMarkdown table {{
           font-size: 0.8em !important;
           transform-origin: top left;
@@ -59,14 +59,13 @@ st.markdown(
           padding: 4px 6px !important;
         }}
 
-        /* allow horizontal scroll if needed */
+        /* allow horizontal scroll */
         .stDataFrame > div, .stMarkdown table {{
           overflow-x: auto !important;
         }}
       }}
 
       /* ─── GLOBAL EXPANDER HEADER STYLES ───────────────────────────────── */
-      /* Overview expander header (all states) */
       div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
         background-color: {CONFIG['colors']['overview']} !important;
         padding: 10px !important;
@@ -77,17 +76,14 @@ st.markdown(
         cursor: pointer !important;
       }}
 
-      /* Order Builder expander header */
       div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
         background-color: {CONFIG['colors']['order_builder']} !important;
       }}
 
-      /* POs, Shipments & Notes expander header */
       div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
         background-color: {CONFIG['colors']['po']} !important;
       }}
 
-      /* Ensure expanded state stays colored */
       div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
         background-color: inherit !important;
       }}
