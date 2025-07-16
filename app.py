@@ -284,7 +284,7 @@ def display_min_order_progress(supplier_df, supplier_col, supplier, font_size=18
         return 0
 
 def display_overview_and_builder(supplier, overview_df, overview_col):
-    """Display the overview and order builder sections in a single table, with foldable headers."""
+    """Display the overview and order builder sections in a single table, with foldable headers and styled expanders."""
     key = f"{supplier}_overview"
 
     # 1. Load or initialize session-state DataFrame
@@ -317,13 +317,12 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         df["Target DOH"]         = pd.to_numeric(df["Target DOH"], errors="coerce").fillna(defaults["target_doh"])
         df["Order Qty"]          = pd.to_numeric(df["Order Qty"], errors="coerce").fillna(defaults["order_qty"])
         df = recompute_fields(df)
-
         st.session_state[key] = df.copy()
 
-    # 2. Overview expander
+    # 2. Overview expander header styling
     st.markdown(f"""
     <style>
-      section[data-baseweb="expander"] > div:first-child {{
+      section[data-baseweb=\"expander\"] > div:first-child {{
         background-color: {CONFIG['colors']['overview']};
         padding: 10px;
         border-radius: 8px;
@@ -335,8 +334,8 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
     </style>
     """, unsafe_allow_html=True)
 
-with st.expander("Overview", expanded=False):
-        # prepare display DataFrame
+    # 3. Overview expander
+    with st.expander("Overview", expanded=False):
         disp_df = st.session_state[key].reset_index(drop=True)
         disp_df.index = disp_df.index + 1
 
@@ -398,10 +397,10 @@ with st.expander("Overview", expanded=False):
         html = styled.to_html(index=True, index_names=False, escape=False)
         st.markdown(html, unsafe_allow_html=True)
 
-    # 3. Order Builder expander
+    # 4. Order Builder expander header styling
     st.markdown(f"""
     <style>
-      section[data-baseweb="expander"] > div:first-child {{
+      section[data-baseweb=\"expander\"] > div:first-child {{
         background-color: {CONFIG['colors']['order_builder']};
         padding: 10px;
         border-radius: 8px;
@@ -413,8 +412,8 @@ with st.expander("Overview", expanded=False):
     </style>
     """, unsafe_allow_html=True)
 
+    # 5. Order Builder expander
     with st.expander("Order Builder", expanded=False):
-        # CSS tweaks for the data editor
         st.markdown("""
         <style>
           .ag-cell { white-space: normal !important; line-height: 1.3 !important; }
