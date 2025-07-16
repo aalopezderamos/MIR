@@ -53,7 +53,7 @@ st.set_page_config(
     page_title="SEB Supplier Overview", 
     layout="wide"
 )
-    st.markdown(
+st.markdown(
         f"""
         <style>
           /* any of your existing portrait / base styles… */
