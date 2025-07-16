@@ -16,6 +16,7 @@ from io import BytesIO
 from xlsxwriter.utility import xl_col_to_name
 import requests
 from PIL import Image
+import requests
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
@@ -28,6 +29,17 @@ st.markdown(
       /* override the default page background */
       .stApp {
         background-color: #ffffff !important;
+      }
+
+      /* portrait/mobile: stack all st.columns vertically */
+      @media only screen and (orientation: portrait) {
+        .stColumns {
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        .stColumns > div {
+          width: 100% !important;
+        }
       }
     </style>
     """,
@@ -62,6 +74,11 @@ CONFIG = {
     },
     "gpt_model": "gpt-4"
 }
+# ─── Remote file URL ───────────────────────────────────────────────
+GITHUB_RAW_URL = (
+    "https://raw.githubusercontent.com/"
+    "aalopezderamos/MIR/main/Master%20Incoming%20Report%20NEW.xlsm"
+)
 
 # ==================== HELPER FUNCTIONS ====================
 def find_supplier_col(df: pd.DataFrame) -> str | None:
@@ -134,8 +151,22 @@ def build_export_df(data: dict) -> pd.DataFrame:
 
     return pd.DataFrame(rows, columns=CONFIG["export"]["cols"])
 
-@st.cache_data
-def load_data(file):
+@st.cache_data(hash_funcs={io.BytesIO: lambda _: None})
+def fetch_remote_file(url: str) -> io.BytesIO:
+    """
+    Download the Excel from GitHub and wrap in a BytesIO.
+    Cached so we don’t re-download on every rerun.
+    """
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    return io.BytesIO(resp.content)
+
+@st.cache_data(hash_funcs={io.BytesIO: lambda _: None})
+def load_data(file: io.BytesIO) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Load and parse the three sheets from the given Excel file.
+    Cached on the BytesIO contents so repeated runs are fast.
+    """
     try:
         supplier_df = pd.read_excel(file, sheet_name="Supplier Info")
         po_df       = pd.read_excel(file, sheet_name="PO Info")
@@ -146,11 +177,11 @@ def load_data(file):
             header=0
         )
 
-        # strip whitespace
+        # strip whitespace from all column names
         for df in (supplier_df, po_df, overview_df):
             df.columns = df.columns.str.strip()
 
-        # ── ensure Product Num is a whole number ──────────────────────────
+        # ensure “Product Num” is an integer column
         if "Product Num" in overview_df.columns:
             overview_df["Product Num"] = (
                 pd.to_numeric(overview_df["Product Num"], errors="coerce")
@@ -158,13 +189,15 @@ def load_data(file):
                   .astype("Int64")
             )
 
-        # add OOS Risk if present…
-        if len(overview_df.columns) >= 12:
+        # if there’s a 12th column, treat it as OOS Risk
+        if overview_df.shape[1] >= 12:
             overview_df["OOS Risk"] = overview_df.iloc[:, 11]
 
         return supplier_df, po_df, overview_df
+
     except Exception as e:
         st.error(f"Error loading file: {e}")
+        # on error, return three empty DataFrames so your app won’t crash
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 def display_min_order_progress(supplier_df, supplier_col, supplier, font_size=18):
@@ -1071,7 +1104,7 @@ def display_export_section():
 TITLE_LOGO_URL = "https://media.glassdoor.com/sqll/6024123/silver-eagle-beverages-squarelogo-1646829838016.png"
 
 def main():
-    # ─── Top-of-page header with logo ──────────────────────────────
+    # ─── Top‐of‐page header ──────────────────────────────────────
     header_html = f"""
     <div style="display: flex; align-items: center; margin-bottom: 16px;">
       <img
@@ -1084,13 +1117,21 @@ def main():
     """
     st.markdown(header_html, unsafe_allow_html=True)
 
-    # ─── File uploader ────────────────────────────────────────────
-    uploaded_file = st.file_uploader("Upload 'Master Incoming Report.xlsm'", type=["xlsm","xlsx"])
-    if not uploaded_file:
-        return st.info("⬆️ Upload the Excel file to begin.")
+    # ─── Choose source ───────────────────────────────────────────
+    use_remote = st.checkbox("Load Master Incoming Report from GitHub", value=True)
+    if use_remote:
+        st.info("Fetching 'Master Incoming Report NEW.xlsm' from GitHub…")
+        file_stream = fetch_remote_file(GITHUB_RAW_URL)
+    else:
+        file_stream = st.file_uploader(
+            "Upload 'Master Incoming Report.xlsm'",
+            type=["xlsm", "xlsx"]
+        )
+        if not file_stream:
+            return st.info("⬆️ Upload the Excel file to begin.")
 
     # ─── Load data ────────────────────────────────────────────────
-    supplier_df, po_df, overview_df = load_data(uploaded_file)
+    supplier_df, po_df, overview_df = load_data(file_stream)
     supplier_col = find_supplier_col(supplier_df)
     po_col       = find_supplier_col(po_df)
     overview_col = find_supplier_col(overview_df) if not overview_df.empty else None
