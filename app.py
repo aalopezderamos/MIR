@@ -31,8 +31,8 @@ st.markdown(
         background-color: #ffffff !important;
       }
 
-      /* portrait/mobile: stack all st.columns vertically */
       @media only screen and (orientation: portrait) {
+        /* stack columns */
         .stColumns {
           display: flex !important;
           flex-direction: column !important;
@@ -40,9 +40,8 @@ st.markdown(
         .stColumns > div {
           width: 100% !important;
         }
-      }
 
-        /* shrink table font & padding */
+        /* shrink stDataFrame tables */
         .stDataFrame table {
           font-size: 0.8em !important;
           transform-origin: top left;
@@ -51,8 +50,17 @@ st.markdown(
           padding: 4px 6px !important;
         }
 
-        /* ensure horizontal scroll if needed */
-        .stDataFrame > div {
+        /* shrink markdown (Overview) tables, too */
+        .stMarkdown table {
+          font-size: 0.8em !important;
+          transform-origin: top left;
+        }
+        .stMarkdown th, .stMarkdown td {
+          padding: 4px 6px !important;
+        }
+
+        /* allow horizontal scroll if needed */
+        .stDataFrame > div, .stMarkdown table {
           overflow-x: auto !important;
         }
       }
