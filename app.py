@@ -62,62 +62,35 @@ st.markdown(
       }}
 
       @media only screen and (orientation: portrait) {{
-        /* stack columns */
-        .stColumns {{
-          display: flex !important;
-          flex-direction: column !important;
-        }}
-        .stColumns > div {{
-          width: 100% !important;
-        }}
-
-        /* shrink stDataFrame tables */
-        .stDataFrame table {{
-          font-size: 0.8em !important;
-          transform-origin: top left;
-        }}
-        .stDataFrame th, .stDataFrame td {{
-          padding: 4px 6px !important;
-        }}
-
-        /* shrink markdown tables */
-        .stMarkdown table {{
-          font-size: 0.8em !important;
-          transform-origin: top left;
-        }}
-        .stMarkdown th, .stMarkdown td {{
-          padding: 4px 6px !important;
-        }}
-
-        /* allow horizontal scroll */
-        .stDataFrame > div, .stMarkdown table {{
-          overflow-x: auto !important;
-        }}
-      }}
-
-      /* ─── GLOBAL EXPANDER HEADER STYLES ───────────────────────────────── */
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
-        background-color: {CONFIG['colors']['overview']} !important;
-        padding: 10px !important;
-        border-radius: 8px !important;
-        margin-bottom: 0 !important;
-        font-size: 1.25rem !important;
-        font-weight: 600 !important;
-        cursor: pointer !important;
-      }}
-
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
-        background-color: {CONFIG['colors']['order_builder']} !important;
-      }}
-
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
-        background-color: {CONFIG['colors']['po']} !important;
-      }}
-
-      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
-        background-color: inherit !important;
+        .stColumns {{ display: flex !important; flex-direction: column !important; }}
+        .stColumns > div {{ width: 100% !important; }}
+        .stDataFrame table, .stMarkdown table {{ font-size: 0.8em !important; transform-origin: top left; }}
+        .stDataFrame th, .stDataFrame td, .stMarkdown th, .stMarkdown td {{ padding: 4px 6px !important; }}
+        .stDataFrame > div, .stMarkdown table {{ overflow-x: auto !important; }}
       }}
     </style>
+
+    <script>
+    // every half-second, re-style expanders by their label text
+    setInterval(() => {{
+      document.querySelectorAll('button[data-testid="stExpanderHeader"]').forEach(btn => {{
+        const t = btn.innerText.trim();
+        if (t === 'Overview') {{
+          btn.style.backgroundColor = '{CONFIG['colors']['overview']}';
+        }} else if (t === 'Order Builder') {{
+          btn.style.backgroundColor = '{CONFIG['colors']['order_builder']}';
+        }} else if (t === 'POs, Shipments & Notes') {{
+          btn.style.backgroundColor = '{CONFIG['colors']['po']}';
+        }}
+        // keep text styling consistent
+        btn.style.color = 'black';
+        btn.style.fontWeight = '600';
+        btn.style.fontSize = '1.25rem';
+        btn.style.borderRadius = '8px';
+        btn.style.padding = '8px 12px';
+      }});
+    }}, 500);
+    </script>
     """,
     unsafe_allow_html=True,
 )
