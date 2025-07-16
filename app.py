@@ -53,47 +53,19 @@ st.set_page_config(
     page_title="SEB Supplier Overview", 
     layout="wide"
 )
-st.markdown(
-    f"""
-    <style>
-      /* 0) base background override */
-      .stApp {{
-        background-color: #ffffff !important;
-      }}
+    st.markdown(
+        f"""
+        <style>
+          /* any of your existing portrait / base styles… */
 
-      @media only screen and (orientation: portrait) {{
-        .stColumns {{ display: flex !important; flex-direction: column !important; }}
-        .stColumns > div {{ width: 100% !important; }}
-        .stDataFrame table, .stMarkdown table {{ font-size: 0.8em !important; transform-origin: top left; }}
-        .stDataFrame th, .stDataFrame td, .stMarkdown th, .stMarkdown td {{ padding: 4px 6px !important; }}
-        .stDataFrame > div, .stMarkdown table {{ overflow-x: auto !important; }}
-      }}
-    </style>
-
-    <script>
-    // every half-second, re-style expanders by their label text
-    setInterval(() => {{
-      document.querySelectorAll('button[data-testid="stExpanderHeader"]').forEach(btn => {{
-        const t = btn.innerText.trim();
-        if (t === 'Overview') {{
-          btn.style.backgroundColor = '{CONFIG['colors']['overview']}';
-        }} else if (t === 'Order Builder') {{
-          btn.style.backgroundColor = '{CONFIG['colors']['order_builder']}';
-        }} else if (t === 'POs, Shipments & Notes') {{
-          btn.style.backgroundColor = '{CONFIG['colors']['po']}';
-        }}
-        // keep text styling consistent
-        btn.style.color = 'black';
-        btn.style.fontWeight = '600';
-        btn.style.fontSize = '1.25rem';
-        btn.style.borderRadius = '8px';
-        btn.style.padding = '8px 12px';
-      }});
-    }}, 500);
-    </script>
-    """,
-    unsafe_allow_html=True,
-)
+          /* DEBUG: turn *all* expander headers bright magenta */
+          button[data-testid="stExpanderHeader"] {{
+            background-color: magenta !important;
+          }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 # ─── Remote file URL ───────────────────────────────────────────────
 GITHUB_RAW_URL = (
     "https://raw.githubusercontent.com/"
