@@ -309,14 +309,18 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
             ("Delivery Date", next_str),
             ("Next Delivery Date", next_str),
         ]:
-            df[col] = df.get(col, default).replace("", default)
+            if col in df.columns:
+                df[col] = df[col].replace("", default)
+            else:
+                df[col] = default
 
         # convert & compute fields
         df["Next Delivery Date"] = pd.to_datetime(df["Next Delivery Date"], errors="coerce")
-        df["Delivery Date"]      = pd.to_datetime(df["Delivery Date"], errors="coerce")
-        df["Target DOH"]         = pd.to_numeric(df["Target DOH"], errors="coerce").fillna(defaults["target_doh"])
-        df["Order Qty"]          = pd.to_numeric(df["Order Qty"], errors="coerce").fillna(defaults["order_qty"])
+        df["Delivery Date"] = pd.to_datetime(df["Delivery Date"], errors="coerce")
+        df["Target DOH"] = pd.to_numeric(df["Target DOH"], errors="coerce").fillna(defaults["target_doh"])
+        df["Order Qty"] = pd.to_numeric(df["Order Qty"], errors="coerce").fillna(defaults["order_qty"])
         df = recompute_fields(df)
+
         st.session_state[key] = df.copy()
 
     # 2. Overview expander header styling
@@ -348,20 +352,22 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
                   .astype(int)
                   .astype(str)
             ).apply(lambda x: (
-                f'<a href="https://sbsabs.encompass8.com/Home?DashboardID=100018&ProductID={x}" '
-                f'target="_blank">{x}</a>'
+                f'<a href=\"https://sbsabs.encompass8.com/Home?DashboardID=100018&ProductID={x}\" '
+                f'target=\"_blank\">{x}</a>'
             ))
 
-        # style rules
+        # style rules for ROS, Product Name, OOS Risk
         disp_df["ROS"] = disp_df["ROS"].round(1)
         ros_min, ros_max = disp_df["ROS"].min(), disp_df["ROS"].max()
         ros_range = ros_max - ros_min or 1
         green_rgb = (99, 190, 123)
-        ros_colors = disp_df["ROS"].apply(lambda v: (
-            f"background-color: rgb({int(255 - (255 - green_rgb[0]) * (v - ros_min) / ros_range)},"
-            f"{int(255 - (255 - green_rgb[1]) * (v - ros_min) / ros_range)},"
-            f"{int(255 - (255 - green_rgb[2]) * (v - ros_min) / ros_range)})"
-        ) if v > 0 else "")
+        ros_colors = disp_df["ROS"].apply(
+            lambda v: (
+                f"background-color: rgb({int(255 - (255 - green_rgb[0]) * (v - ros_min) / ros_range)},"
+                f"{int(255 - (255 - green_rgb[1]) * (v - ros_min) / ros_range)},"
+                f"{int(255 - (255 - green_rgb[2]) * (v - ros_min) / ros_range)})"
+            ) if v > 0 else ""
+        )
 
         def product_name_color(row):
             doh, coh, ros = row["Days of Inventory"], row["COH"], row["ROS"]
@@ -384,14 +390,12 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
             disp_df[overview_cols]
               .style
               .apply(lambda _: ros_colors, subset=["ROS"])
-              .apply(lambda row: [product_name_color(row)
-                  if col == "Product Name" else "" for col in overview_cols], axis=1)
+              .apply(lambda row: [product_name_color(row) if col == "Product Name" else "" for col in overview_cols], axis=1)
               .applymap(oos_risk_color, subset=["OOS Risk"])
               .format({"ROS": "{:.1f}", "COH": "{:.0f}",
                        "Days of Inventory": "{:.1f}", "OOS Risk": "{:.0f}"})
               .set_table_styles([
-                  {"selector": "th.row_heading, td.row_heading",
-                   "props": [("font-weight", "normal")]}
+                  {"selector": "th.row_heading, td.row_heading", "props": [("font-weight", "normal")]}
               ])
         )
         html = styled.to_html(index=True, index_names=False, escape=False)
@@ -414,18 +418,21 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
 
     # 5. Order Builder expander
     with st.expander("Order Builder", expanded=False):
-        st.markdown("""
-        <style>
-          .ag-cell { white-space: normal !important; line-height: 1.3 !important; }
-          .ag-cell[col-id=\"Product Name\"], .ag-header-cell-label[col-id=\"Product Name\"] {
-            white-space: nowrap !important;
-          }
-          .ag-root-wrapper { width: 100% !important; }
-          .ag-cell[col-id=\"To Order\"], .ag-header-cell[col-id=\"To Order\"] {
-            background-color: yellow !important;
-          }
-        </style>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            """
+            <style>
+              .ag-cell { white-space: normal !important; line-height: 1.3 !important; }
+              .ag-cell[col-id=\"Product Name\"], .ag-header-cell-label[col-id=\"Product Name\"] {
+                white-space: nowrap !important;
+              }
+              .ag-root-wrapper { width: 100% !important; }
+              .ag-cell[col-id=\"To Order\"], .ag-header-cell[col-id=\"To Order\"] {
+                background-color: yellow !important;
+              }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
 
         editor_df = disp_df.copy()
         round_cols = ["Target DOH", "Days Until Next Delivery",
