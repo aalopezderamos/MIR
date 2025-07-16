@@ -54,18 +54,73 @@ st.set_page_config(
     layout="wide"
 )
 st.markdown(
-        f"""
-        <style>
-          /* any of your existing portrait / base styles… */
+    f"""
+    <style>
+      /* 0) base background override */
+      .stApp {{
+        background-color: #ffffff !important;
+      }}
 
-          /* DEBUG: turn *all* expander headers bright magenta */
-          button[data-testid="stExpanderHeader"] {{
-            background-color: magenta !important;
-          }}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+      @media only screen and (orientation: portrait) {{
+        /* stack columns */
+        .stColumns {{
+          display: flex !important;
+          flex-direction: column !important;
+        }}
+        .stColumns > div {{
+          width: 100% !important;
+        }}
+
+        /* shrink stDataFrame tables */
+        .stDataFrame table {{
+          font-size: 0.8em !important;
+          transform-origin: top left;
+        }}
+        .stDataFrame th, .stDataFrame td {{
+          padding: 4px 6px !important;
+        }}
+
+        /* shrink markdown tables */
+        .stMarkdown table {{
+          font-size: 0.8em !important;
+          transform-origin: top left;
+        }}
+        .stMarkdown th, .stMarkdown td {{
+          padding: 4px 6px !important;
+        }}
+
+        /* allow horizontal scroll */
+        .stDataFrame > div, .stMarkdown table {{
+          overflow-x: auto !important;
+        }}
+      }}
+
+      /* ─── GLOBAL EXPANDER HEADER STYLES ───────────────────────────────── */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
+        background-color: {CONFIG['colors']['overview']} !important;
+        padding: 10px !important;
+        border-radius: 8px !important;
+        margin-bottom: 0 !important;
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+      }}
+
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
+        background-color: {CONFIG['colors']['order_builder']} !important;
+      }}
+
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded] {{
+        background-color: {CONFIG['colors']['po']} !important;
+      }}
+
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
+        background-color: inherit !important;
+      }}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 # ─── Remote file URL ───────────────────────────────────────────────
 GITHUB_RAW_URL = (
     "https://raw.githubusercontent.com/"
