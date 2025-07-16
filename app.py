@@ -60,13 +60,13 @@ st.markdown(
           overflow-x: auto !important;
         }
 
-        /* 4) hide the Order Builder header (bg-color #E1CCF0) */
-        div[style*="#E1CCF0"] {
+        /* 4) hide the Order Builder header */
+        .stMarkdown div[style*="#E1CCF0"] {
           display: none !important;
         }
 
-        /* 5) hide only the Order Builder data_editor grid */
-        [data-testid="stDataEditor"] .ag-root-wrapper {
+        /* 5) hide the entire Order Builder editor */
+        [data-testid="stDataEditor"] {
           display: none !important;
         }
       }
