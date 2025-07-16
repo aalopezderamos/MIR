@@ -323,7 +323,6 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
     # 2. Overview expander
     st.markdown(f"""
     <style>
-      /* style the very first div inside each expander (the header bar) */
       section[data-baseweb="expander"] > div:first-child {{
         background-color: {CONFIG['colors']['overview']};
         padding: 10px;
