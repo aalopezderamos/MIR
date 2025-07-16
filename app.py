@@ -475,7 +475,7 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
     po_count, po_numbers = 0, []
 
     # Foldable section using Streamlit expander
-st.markdown(f"""
+    st.markdown(f"""
     <style>
       section[data-baseweb="expander"] > div:first-child {{
         background-color: {CONFIG['colors']['po']};
@@ -489,6 +489,7 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
+    # Foldable section using Streamlit expander
     with st.expander("POs, Shipments & Notes", expanded=False):
         tab_po, tab_ship, tab_notes = st.tabs(["🖨️ POs", "🚚 Shipments", "🗒️ Notes"])
 
