@@ -321,7 +321,22 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         st.session_state[key] = df.copy()
 
     # 2. Overview expander
-    with st.expander("Overview", expanded=False):
+    st.markdown(f"""
+    <style>
+      /* style the very first div inside each expander (the header bar) */
+      section[data-baseweb="expander"] > div:first-child {{
+        background-color: {CONFIG['colors']['overview']};
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        cursor: pointer;
+      }}
+    </style>
+    """, unsafe_allow_html=True)
+
+with st.expander("Overview", expanded=False):
         # prepare display DataFrame
         disp_df = st.session_state[key].reset_index(drop=True)
         disp_df.index = disp_df.index + 1
@@ -385,6 +400,20 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         st.markdown(html, unsafe_allow_html=True)
 
     # 3. Order Builder expander
+    st.markdown(f"""
+    <style>
+      section[data-baseweb="expander"] > div:first-child {{
+        background-color: {CONFIG['colors']['order_builder']};
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        cursor: pointer;
+      }}
+    </style>
+    """, unsafe_allow_html=True)
+
     with st.expander("Order Builder", expanded=False):
         # CSS tweaks for the data editor
         st.markdown("""
@@ -446,6 +475,20 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
     po_count, po_numbers = 0, []
 
     # Foldable section using Streamlit expander
+st.markdown(f"""
+    <style>
+      section[data-baseweb="expander"] > div:first-child {{
+        background-color: {CONFIG['colors']['po']};
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        cursor: pointer;
+      }}
+    </style>
+    """, unsafe_allow_html=True)
+
     with st.expander("POs, Shipments & Notes", expanded=False):
         tab_po, tab_ship, tab_notes = st.tabs(["🖨️ POs", "🚚 Shipments", "🗒️ Notes"])
 
