@@ -326,7 +326,8 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
     # 2. Overview expander header styling
     st.markdown(f"""
     <style>
-      section[data-baseweb=\"expander\"] > div:first-child {{
+      /* collapsed state */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="false"] {{
         background-color: {CONFIG['colors']['overview']} !important;
         padding: 10px !important;
         border-radius: 8px !important;
@@ -334,6 +335,10 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         font-size: 1.25rem !important;
         font-weight: 600 !important;
         cursor: pointer !important;
+      }}
+      /* expanded state */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
+        background-color: {CONFIG['colors']['overview']} !important;
       }}
     </style>
     """, unsafe_allow_html=True)
@@ -404,7 +409,8 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
     # 4. Order Builder expander header styling
     st.markdown(f"""
     <style>
-      section[data-baseweb=\"expander\"] > div:first-child {{
+      /* collapsed state */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="false"] {{
         background-color: {CONFIG['colors']['order_builder']} !important;
         padding: 10px !important;
         border-radius: 8px !important;
@@ -412,6 +418,10 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
         font-size: 1.25rem !important;
         font-weight: 600 !important;
         cursor: pointer !important;
+      }}
+      /* expanded state */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
+        background-color: {CONFIG['colors']['order_builder']} !important;
       }}
     </style>
     """, unsafe_allow_html=True)
@@ -482,7 +492,8 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
     # Foldable section using Streamlit expander
     st.markdown(f"""
     <style>
-      section[data-baseweb="expander"] > div:first-child {{
+      /* collapsed state */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="false"] {{
         background-color: {CONFIG['colors']['po']} !important;
         padding: 10px !important;
         border-radius: 8px !important;
@@ -490,6 +501,10 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
         font-size: 1.25rem !important;
         font-weight: 600 !important;
         cursor: pointer !important;
+      }}
+      /* expanded state */
+      div[data-testid="stExpander"] > button[data-testid="stExpanderHeader"][aria-expanded="true"] {{
+        background-color: {CONFIG['colors']['po']} !important;
       }}
     </style>
     """, unsafe_allow_html=True)
