@@ -32,7 +32,7 @@ st.markdown(
       }
 
       @media only screen and (orientation: portrait) {
-        /* 1) stack all st.columns vertically */
+        /* stack columns */
         .stColumns {
           display: flex !important;
           flex-direction: column !important;
@@ -41,32 +41,27 @@ st.markdown(
           width: 100% !important;
         }
 
-        /* 2) shrink both DataFrame and Markdown tables */
-        .stDataFrame table,
+        /* shrink stDataFrame tables */
+        .stDataFrame table {
+          font-size: 0.8em !important;
+          transform-origin: top left;
+        }
+        .stDataFrame th, .stDataFrame td {
+          padding: 4px 6px !important;
+        }
+
+        /* shrink markdown (Overview) tables, too */
         .stMarkdown table {
           font-size: 0.8em !important;
           transform-origin: top left;
         }
-        .stDataFrame th,
-        .stDataFrame td,
-        .stMarkdown th,
-        .stMarkdown td {
+        .stMarkdown th, .stMarkdown td {
           padding: 4px 6px !important;
         }
 
-        /* 3) allow horizontal scroll if still too wide */
-        .stDataFrame > div,
-        .stMarkdown table {
+        /* allow horizontal scroll if needed */
+        .stDataFrame > div, .stMarkdown table {
           overflow-x: auto !important;
-        }
-
-        /* 4) hide the Order Builder header (bg-color #E1CCF0) */
-        div[style*="#E1CCF0"] {
-          display: none !important;
-        }
-        /* 5) hide the very next div (the data_editor grid) */
-        div[style*="#E1CCF0"] + div {
-          display: none !important;
         }
       }
     </style>
