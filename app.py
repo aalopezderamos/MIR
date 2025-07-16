@@ -41,6 +41,21 @@ st.markdown(
           width: 100% !important;
         }
       }
+
+        /* shrink table font & padding */
+        .stDataFrame table {
+          font-size: 0.8em !important;
+          transform-origin: top left;
+        }
+        .stDataFrame th, .stDataFrame td {
+          padding: 4px 6px !important;
+        }
+
+        /* ensure horizontal scroll if needed */
+        .stDataFrame > div {
+          overflow-x: auto !important;
+        }
+      }
     </style>
     """,
     unsafe_allow_html=True,
