@@ -32,7 +32,7 @@ st.markdown(
       }
 
       @media only screen and (orientation: portrait) {
-        /* stack columns */
+        /* 1) stack all st.columns vertically */
         .stColumns {
           display: flex !important;
           flex-direction: column !important;
@@ -41,35 +41,32 @@ st.markdown(
           width: 100% !important;
         }
 
-        /* shrink stDataFrame tables */
-        .stDataFrame table {
-          font-size: 0.8em !important;
-          transform-origin: top left;
-        }
-        .stDataFrame th, .stDataFrame td {
-          padding: 4px 6px !important;
-        }
-
-        /* shrink markdown (Overview) tables, too */
+        /* 2) shrink both DataFrame and Markdown tables */
+        .stDataFrame table,
         .stMarkdown table {
           font-size: 0.8em !important;
           transform-origin: top left;
         }
-        .stMarkdown th, .stMarkdown td {
+        .stDataFrame th,
+        .stDataFrame td,
+        .stMarkdown th,
+        .stMarkdown td {
           padding: 4px 6px !important;
         }
 
-        /* allow horizontal scroll if needed */
-        .stDataFrame > div, .stMarkdown table {
+        /* 3) allow horizontal scroll if still too wide */
+        .stDataFrame > div,
+        .stMarkdown table {
           overflow-x: auto !important;
         }
-                /* ── hide the Order Builder header (inline bg-color #E1CCF0) ── */
+
+        /* 4) hide the Order Builder header (bg-color #E1CCF0) */
         div[style*="#E1CCF0"] {
           display: none !important;
         }
 
-        /* ── hide the Ag-Grid editor that st.data_editor emits ── */
-        .ag-root-wrapper {
+        /* 5) hide only the Order Builder data_editor grid */
+        [data-testid="stDataEditor"] .ag-root-wrapper {
           display: none !important;
         }
       }
