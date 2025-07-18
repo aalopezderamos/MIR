@@ -668,14 +668,13 @@ def display_supplier(
 
     # Details expander
     with st.expander("Details", expanded=False):
-        colA, colB = st.columns([3, 2])
-        with colA:
-            display_overview_and_builder(supplier, overview_df, overview_col)
-        with colB:
-            po_count, po_numbers = display_po_and_shipments(
-                supplier, po_df, po_col, overview_df, overview_col
-            )
-         # ─── Short Code Data expander ────────────────────────────
+        # ─── Overview & Order Builder (full width) ─────────────────────────────
+        display_overview_and_builder(supplier, overview_df, overview_col)
+
+        # ─── POs, Shipments & Notes (full width) ───────────────────────────────
+        display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
+
+        # ─── Short Code Data (full width) ──────────────────────────────────────
         with st.expander("Short Code Data", expanded=False):
             display_shortcode(supplier, shortcode_df)
 
