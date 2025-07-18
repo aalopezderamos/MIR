@@ -247,6 +247,13 @@ def load_data(file: io.BytesIO) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFram
         # on error, return three empty DataFrames so your app won’t crash
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
+@st.cache_data(hash_funcs={io.BytesIO: lambda _: None})
+def load_shortcode_data(file: io.BytesIO) -> pd.DataFrame:
+    """Load the 'Short Code Data' sheet once (cached)."""
+    df = pd.read_excel(file, sheet_name="Short Code Data")
+    df.columns = df.columns.str.strip()
+    return df
+
 def display_min_order_progress(supplier_df, supplier_col, supplier, font_size=18):
     """Display the minimum order progress using a truck graphic as the bar, filling the trailer
     area (from X=1 to X=160 and Y=5 to Y=35) with the beer image, plus a marker and centered percentage text.
@@ -567,6 +574,37 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
             )
 
     return po_count, po_numbers
+
+def display_shortcode(supplier: str,
+                      shortcode_df: pd.DataFrame,
+                      supplier_col: str):
+    # filter to this supplier
+    df = shortcode_df.loc[
+        shortcode_df[supplier_col] == supplier,
+        [
+            "Product Name",
+            "Product ID",
+            "Supplier Family",
+            "Code Date",
+            "Inventory",
+            "Daily Rate of Sales",
+            "Days on Hand",
+            "Shelf Life Remaining",
+            "Shelf Life Days",
+            "Expiration Date",
+            "Receive Date",
+        ]
+    ].copy()
+
+    if df.empty:
+        st.info("No short-code data for this supplier.")
+    else:
+        st.subheader("Short Code Data")
+        # format dates nicely
+        for dt_col in ["Code Date", "Expiration Date", "Receive Date"]:
+            if dt_col in df.columns:
+                df[dt_col] = pd.to_datetime(df[dt_col], errors="coerce").dt.strftime("%m/%d/%Y")
+        st.dataframe(df, use_container_width=True)
 
 def display_supplier(supplier, supplier_df, po_df, overview_df, supplier_col, po_col, overview_col):
     """Display all information for a single supplier, showing its logo next to the name."""
@@ -1114,7 +1152,7 @@ def display_export_section():
 TITLE_LOGO_URL = "https://media.glassdoor.com/sqll/6024123/silver-eagle-beverages-squarelogo-1646829838016.png"
 
 def main():
-    # ─── Top‐of‐page header ──────────────────────────────────────
+    # ─── Top‑of‑page header ──────────────────────────────────────
     header_html = f"""
     <div style="display: flex; align-items: center; margin-bottom: 16px;">
       <img
@@ -1142,6 +1180,8 @@ def main():
 
     # ─── Load data ────────────────────────────────────────────────
     supplier_df, po_df, overview_df = load_data(file_stream)
+    shortcode_df = load_shortcode_data(file_stream)
+
     supplier_col = find_supplier_col(supplier_df)
     po_col       = find_supplier_col(po_df)
     overview_col = find_supplier_col(overview_df) if not overview_df.empty else None
@@ -1203,6 +1243,8 @@ def main():
             overview_col
         )
         if st.session_state.get("selected_suppliers", {}).get(supplier):
+            # Insert Short Code Data section per supplier
+            display_shortcode(supplier, shortcode_df, supplier_col)
             st.session_state.report_data[supplier] = result
 
     # ─── Export to PO CSV ───────────────────────────────────────
@@ -1228,7 +1270,6 @@ def main():
         if not st.session_state.report_data:
             st.warning("Please select at least one supplier to export.")
         else:
-            # Build maps
             supplier_logo_urls = dict(
                 zip(
                     supplier_df[supplier_col],
@@ -1242,16 +1283,15 @@ def main():
                 )
             )
 
-            # Generate Excel bytes with Order Day as DUE
             excel_bytes = _export_report_to_excel_bytes(
-                st.session_state.report_data,  # supplier_data
-                overview_df,                   # overview_df
-                overview_col,                  # overview_col
-                supplier_logo_urls,            # supplier_logo_urls
-                supplier_manager_map,          # supplier_manager_map
-                supplier_order_day_map,        # supplier_order_day_map
-                po_df,                         # po_df
-                po_col                         # po_col
+                st.session_state.report_data,
+                overview_df,
+                overview_col,
+                supplier_logo_urls,
+                supplier_manager_map,
+                supplier_order_day_map,
+                po_df,
+                po_col
             )
             st.download_button(
                 label="💽 Download DSR Excel Report",
