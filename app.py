@@ -617,71 +617,65 @@ def display_supplier(
     po_col: str,
     overview_col: str,
     shortcode_df: pd.DataFrame):
-
-    """Display all information for a single supplier, showing its logo next to the name."""
-    # ─── Supplier header with logo ───────────────────────────────────────────────
+    
+    """Display all information for a single supplier, with four full-width sections under Details."""
+    # ─── Header with logo + select checkbox ─────────────────────────
     col1, col2 = st.columns([1, 10])
     with col1:
         selected = st.checkbox("", key=f"select_{supplier}", value=False)
     with col2:
-        # Attempt to pull the logo URL from the "Logos" column
         logo_url = None
         if "Logos" in supplier_df.columns:
             logos = (
                 supplier_df.loc[supplier_df[supplier_col] == supplier, "Logos"]
-                .dropna()
-                .astype(str)
+                .dropna().astype(str)
             )
             if not logos.empty:
                 logo_url = logos.iloc[0].strip()
-
-        # Render the image with fixed width, or fallback emoji
         if logo_url:
             st.markdown(
                 f"""
                 <div style="display: flex; align-items: center;">
                   <img src="{logo_url}" alt="{supplier} logo"
-                       style="
-                         width: {72}px;
-                         height: auto;
-                         object-fit: contain;
-                         margin-right: 8px;
-                       " />
+                       style="width:72px; height:auto; margin-right:8px;" />
                   <span style="font-size:26px; font-weight:600;">{supplier}</span>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
         else:
-            st.markdown(
-                f"<h3 style='font-size:26px;'>🏬 {supplier}</h3>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<h3 style='font-size:26px;'>🏬 {supplier}</h3>",
+                        unsafe_allow_html=True)
 
-    # Store selection
+    # track selection
     st.session_state.setdefault("selected_suppliers", {})[supplier] = selected
     if not selected:
         return None, None, None, None
 
-    # Minimum order progress
+    # ─── Minimum order progress ────────────────────────────────────
     min_order_pct = display_min_order_progress(supplier_df, supplier_col, supplier)
 
-    # Details expander
+    # prepare defaults for PO info
+    po_count, po_numbers = 0, []
+
+    # ─── Details expander ──────────────────────────────────────────
     with st.expander("Details", expanded=False):
-        # ─── Overview & Order Builder (full width) ─────────────────────────────
+        # Overview & Order Builder (full-width)
         display_overview_and_builder(supplier, overview_df, overview_col)
 
-        # ─── POs, Shipments & Notes (full width) ───────────────────────────────
-        display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
+        # POs, Shipments & Notes (full-width) and capture outputs
+        po_count, po_numbers = display_po_and_shipments(
+            supplier, po_df, po_col, overview_df, overview_col
+        )
 
-        # ─── Short Code Data (full width) ──────────────────────────────────────
+        # Short Code Data (full-width)
         with st.expander("Short Code Data", expanded=False):
             display_shortcode(supplier, shortcode_df)
 
-    # Prepare return data
+    # ─── Build metrics for summary/export ─────────────────────────
     overview_data = st.session_state.get(f"{supplier}_overview", pd.DataFrame())
     items_under_10 = (
-        overview_data[overview_data["Days of Inventory"] < 10].shape[0]
+        (overview_data["Days of Inventory"] < 10).sum()
         if not overview_data.empty else 0
     )
     oos_risks = (
@@ -691,6 +685,7 @@ def display_supplier(
         if not overview_data.empty else []
     )
 
+    # return tuple for summary and export
     return min_order_pct, items_under_10, oos_risks, (po_count, po_numbers)
 
 def _export_report_to_excel_bytes(
