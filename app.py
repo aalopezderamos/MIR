@@ -666,10 +666,10 @@ def display_supplier(supplier, supplier_df, po_df, overview_df, supplier_col, po
             po_count, po_numbers = display_po_and_shipments(
                 supplier, po_df, po_col, overview_df, overview_col
             )
-+        # ─── Short Code Data expander ────────────────────────────
-+        with st.expander("Short Code Data", expanded=False):
-+            # will auto-detect your supplier column inside the sheet
-+            display_shortcode(supplier, shortcode_df)
+         # ─── Short Code Data expander ────────────────────────────
+         with st.expander("Short Code Data", expanded=False):
+             # will auto-detect your supplier column inside the sheet
+             display_shortcode(supplier, shortcode_df)
 
     # Prepare return data
     overview_data = st.session_state.get(f"{supplier}_overview", pd.DataFrame())
