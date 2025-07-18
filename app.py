@@ -617,7 +617,7 @@ def display_supplier(
     po_col: str,
     overview_col: str,
     shortcode_df: pd.DataFrame):
-    
+
     """Display all information for a single supplier, showing its logo next to the name."""
     # ─── Supplier header with logo ───────────────────────────────────────────────
     col1, col2 = st.columns([1, 10])
@@ -1258,8 +1258,6 @@ def main():
             shortcode_df
         )
         if st.session_state.get("selected_suppliers", {}).get(supplier):
-            # show short code data table
-            display_shortcode(supplier, shortcode_df)
             # store for exports and summaries
             st.session_state.report_data[supplier] = result
 
