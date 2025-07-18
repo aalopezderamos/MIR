@@ -554,11 +554,16 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
                 """,
                 unsafe_allow_html=True
             )
-            st.text_area(
+            note_key = f"{supplier}_notes"
+            default_note = "Notes written here will appear on export"
+
+            # pull existing or fall back to default
+            current = st.session_state.get(note_key, "")
+            text = st.text_area(
                 label="",
-                placeholder="Type your notes here...",
+                value=current if current else default_note,
                 height=150,
-                key=f"{supplier}_notes"
+                key=note_key
             )
 
     return po_count, po_numbers
