@@ -576,35 +576,37 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
     return po_count, po_numbers
 
 def display_shortcode(supplier: str,
-                      shortcode_df: pd.DataFrame,
-                      supplier_col: str):
-    # filter to this supplier
+                      shortcode_df: pd.DataFrame):
+    # 1) figure out which column holds “supplier” in the shortcode sheet
+    code_sup_col = find_supplier_col(shortcode_df)
+    if not code_sup_col:
+        st.error("❌ Could not locate a 'Supplier' column in Short Code Data.")
+        return
+
+    # 2) now filter by that real column
     df = shortcode_df.loc[
-        shortcode_df[supplier_col] == supplier,
+        shortcode_df[code_sup_col] == supplier,
         [
-            "Product Name",
-            "Product ID",
-            "Supplier Family",
-            "Code Date",
-            "Inventory",
-            "Daily Rate of Sales",
-            "Days on Hand",
-            "Shelf Life Remaining",
-            "Shelf Life Days",
-            "Expiration Date",
-            "Receive Date",
+            "Product Name", "Product ID", "Supplier Family",
+            "Code Date", "Inventory", "Daily Rate of Sales",
+            "Days on Hand", "Shelf Life Remaining",
+            "Shelf Life Days", "Expiration Date", "Receive Date",
         ]
     ].copy()
 
     if df.empty:
-        st.info("No short-code data for this supplier.")
-    else:
-        st.subheader("Short Code Data")
-        # format dates nicely
-        for dt_col in ["Code Date", "Expiration Date", "Receive Date"]:
-            if dt_col in df.columns:
-                df[dt_col] = pd.to_datetime(df[dt_col], errors="coerce").dt.strftime("%m/%d/%Y")
-        st.dataframe(df, use_container_width=True)
+        st.info("No short‐code data for this supplier.")
+        return
+
+    # 3) format your dates
+    for dt in ("Code Date", "Expiration Date", "Receive Date"):
+        if dt in df:
+            df[dt] = (
+                pd.to_datetime(df[dt], errors="coerce")
+                  .dt.strftime("%m/%d/%Y")
+            )
+    st.subheader("Short Code Data")
+    st.dataframe(df, use_container_width=True)
 
 def display_supplier(supplier, supplier_df, po_df, overview_df, supplier_col, po_col, overview_col):
     """Display all information for a single supplier, showing its logo next to the name."""
@@ -1152,7 +1154,7 @@ def display_export_section():
 TITLE_LOGO_URL = "https://media.glassdoor.com/sqll/6024123/silver-eagle-beverages-squarelogo-1646829838016.png"
 
 def main():
-    # ─── Top‑of‑page header ──────────────────────────────────────
+    # ─── Top-of-page header ──────────────────────────────────────
     header_html = f"""
     <div style="display: flex; align-items: center; margin-bottom: 16px;">
       <img
@@ -1165,7 +1167,7 @@ def main():
     """
     st.markdown(header_html, unsafe_allow_html=True)
 
-    # ─── Choose source ───────────────────────────────────────────
+    # ─── Choose data source ────────────────────────────────────────
     use_remote = st.checkbox("Load Master Incoming Report from GitHub", value=True)
     if use_remote:
         st.info("Fetching 'Master Incoming Report NEW.xlsm' from GitHub…")
@@ -1178,10 +1180,11 @@ def main():
         if not file_stream:
             return st.info("⬆️ Upload the Excel file to begin.")
 
-    # ─── Load data ────────────────────────────────────────────────
+    # ─── Load sheets ────────────────────────────────────────────────
     supplier_df, po_df, overview_df = load_data(file_stream)
     shortcode_df = load_shortcode_data(file_stream)
 
+    # find supplier column in main sheets
     supplier_col = find_supplier_col(supplier_df)
     po_col       = find_supplier_col(po_df)
     overview_col = find_supplier_col(overview_df) if not overview_df.empty else None
@@ -1191,7 +1194,7 @@ def main():
     if "Order Day" not in supplier_df.columns:
         return st.error("❌ 'Order Day' column not found in Supplier Info.")
 
-    # ─── Filters ──────────────────────────────────────────────────
+    # ─── Filters ────────────────────────────────────────────────────
     supplier_df["Order Day"] = (
         supplier_df["Order Day"]
         .astype(str)
@@ -1209,16 +1212,16 @@ def main():
         managers = ["All"] + sorted(supplier_df["Brand Manager"].dropna().unique())
         selected_manager = st.selectbox("Filter by Brand Manager", managers, index=0)
 
+    # apply filters
     filtered = supplier_df[supplier_df[supplier_col] != "Anheuser Busch"]
     if selected_day != "Any Day":
         filtered = filtered[filtered["Order Day"] == selected_day]
     if selected_manager != "All":
         filtered = filtered[filtered["Brand Manager"] == selected_manager]
-
     if filtered.empty:
         return st.warning("No suppliers match current filters.")
 
-    # ─── Build Order Day map ───────────────────────────────────────
+    # build order-day map
     supplier_order_day_map = dict(
         zip(
             supplier_df[supplier_col],
@@ -1227,11 +1230,10 @@ def main():
     )
 
     st.subheader("Suppliers")
-
-    # ─── Initialize report_data ───────────────────────────────────
     if "report_data" not in st.session_state:
         st.session_state.report_data = {}
 
+    # display each supplier
     for supplier in sorted(filtered[supplier_col].unique()):
         result = display_supplier(
             supplier,
@@ -1243,14 +1245,15 @@ def main():
             overview_col
         )
         if st.session_state.get("selected_suppliers", {}).get(supplier):
-            # Insert Short Code Data section per supplier
-            display_shortcode(supplier, shortcode_df, supplier_col)
+            # show short code data table
+            display_shortcode(supplier, shortcode_df)
+            # store for exports and summaries
             st.session_state.report_data[supplier] = result
 
-    # ─── Export to PO CSV ───────────────────────────────────────
+    # ─── Export controls ───────────────────────────────────────────
     display_export_section()
 
-    # ─── ChatGPT Summary Button ─────────────────────────────────
+    # ─── Procurement Assistant ─────────────────────────────────────
     if st.button("🙋🏻 Procurement Assistant", use_container_width=True):
         if not st.session_state.report_data:
             st.warning("Please select at least one supplier to generate a summary.")
@@ -1265,7 +1268,7 @@ def main():
                 mime="text/plain"
             )
 
-    # ─── Export DSR to Excel (with logos) ─────────────────────────
+    # ─── DSR Excel Export ──────────────────────────────────────────
     if st.button("💽 Export DSR to Excel", use_container_width=True):
         if not st.session_state.report_data:
             st.warning("Please select at least one supplier to export.")
@@ -1282,7 +1285,6 @@ def main():
                     supplier_df["Brand Manager"]
                 )
             )
-
             excel_bytes = _export_report_to_excel_bytes(
                 st.session_state.report_data,
                 overview_df,
