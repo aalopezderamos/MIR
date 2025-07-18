@@ -1021,17 +1021,15 @@ def generate_chatgpt_summary(supplier_data):
     blocks = []
     for supplier, data in supplier_data.items():
         min_order_pct, items_under_10, oos_risks, po_info = data
-        po_count, po_numbers = po_info or (0, [])
+        po_count, _ = po_info or (0, [])
 
         # Pull in user notes (or empty if none)
         notes = st.session_state.get(f"{supplier}_notes", "").strip()
 
-        # ─── Compute total items and ratio ───────────────────────────────────
+        # Compute overall health phrase
         overview_df = st.session_state.get(f"{supplier}_overview", pd.DataFrame())
         total_items = overview_df.shape[0]
         ratio = (items_under_10 / total_items) if total_items > 0 else 0
-
-        # ─── Inventory health phrasing with mid-case ────────────────────────
         if items_under_10 == 0:
             health_phrase = random.choice(inventory_good_phrases)
         elif ratio < 0.25:
@@ -1039,7 +1037,7 @@ def generate_chatgpt_summary(supplier_data):
         else:
             health_phrase = random.choice(inventory_risk_phrases)
 
-        # ─── Determine PO Recommendation ─────────────────────────────────────
+        # Determine PO recommendation phrase
         if min_order_pct < 0.75:
             po_choice = random.choice(po_low_phrases)
         elif min_order_pct < 1.0:
@@ -1047,7 +1045,7 @@ def generate_chatgpt_summary(supplier_data):
         else:
             po_choice = random.choice(po_high_phrases)
 
-        # ─── Build the text block ─────────────────────────────────────────────
+        # Build the text block
         lines = [
             f"**{supplier}:**",
             "",
@@ -1056,23 +1054,24 @@ def generate_chatgpt_summary(supplier_data):
             "",
             "**Notes & Next Steps:**"
         ]
+
         if notes:
-            # user-entered note
+            # user-entered notes + one blank spacer
             lines.append(notes)
-            # spacer after real note
             lines.append("")
         else:
-            # no notes → reserve a blank row for later entry
-            lines.append("")  # blank line placeholder
+            # reserve at least one blank row for future manual entry
+            lines.append("")  # ← blank line in exported Excel
+            # (add more lines here if you want extra blank rows)
+        
+        # PO recommendation
+        lines.extend([
+            "**PO Recommendation:**",
+            f"I currently have {po_count} open PO{'s' if po_count != 1 else ''}. {po_choice}",
+            ""
+        ])
 
-        # PO Recommendation with count + first-person phrasing
-        po_header = f"**PO Recommendation:**"
-        po_line = (
-            f"I currently have {po_count} open PO{'s' if po_count != 1 else ''}. {po_choice}"
-        )
-        lines += [po_header, po_line, ""]
-
-        # OOS Risk bullets
+        # OOS Risk section
         lines.append("**OOS Risk:**")
         if oos_risks:
             if len(oos_risks) > 6:
@@ -1082,12 +1081,8 @@ def generate_chatgpt_summary(supplier_data):
                     lines.append(f"• {sku} {name} – {int(risk)} days")
         else:
             lines.append("• NO OOS RISK CURRENTLY")
-
-        lines += [
-            "",
-            "**Order Builder Table:**",
-            # left blank for user editing
-        ]
+        lines.append("")  # spacer before the builder table header
+        lines.append("**Order Builder Table:**")
 
         blocks.append("\n".join(lines))
 
