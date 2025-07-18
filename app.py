@@ -1057,8 +1057,13 @@ def generate_chatgpt_summary(supplier_data):
             "**Notes & Next Steps:**"
         ]
         if notes:
+            # user-entered note
             lines.append(notes)
-        lines.append("")
+            # spacer after real note
+            lines.append("")
+        else:
+            # no notes → reserve a blank row for later entry
+            lines.append("")  # blank line placeholder
 
         # PO Recommendation with count + first-person phrasing
         po_header = f"**PO Recommendation:**"
