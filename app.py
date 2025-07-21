@@ -817,33 +817,6 @@ def _export_report_to_excel_bytes(
             if order_day:
                 ws.write(0, 16, f"DUE {order_day}", due_fmt)
 
-            # 4) Summary text
-            summary_text = generate_chatgpt_summary({supplier: data})
-            lines = [ln for ln in summary_text.splitlines() if ln.strip()]
-            in_oos = next_note = next_po = False
-            for idx, raw in enumerate(lines[1:], start=1):
-                txt = raw.replace("**", "").strip()
-                if txt.startswith("Notes & Next Steps:"):
-                    ws.write(idx, 0, txt, sec_hdr_fmt); next_note=True; continue
-                if next_note:
-                    ws.write(idx, 0, txt, blue_fmt); next_note=False; continue
-                if txt.startswith("PO Recommendation:"):
-                    ws.write(idx, 0, txt, sec_hdr_fmt); next_po=True; continue
-                if next_po:
-                    ws.write(idx, 0, txt, blue_fmt); next_po=False; continue
-                if txt.startswith("OOS Risk:"):
-                    ws.write(idx, 0, txt, sec_hdr_fmt); in_oos=True; continue
-                if in_oos:
-                    if txt.startswith("Order Builder Table:"):
-                        ws.write(idx, 0, txt, sec_hdr_fmt); in_oos=False
-                    else:
-                        ws.write(idx, 0, txt, red_fmt)
-                    continue
-                if txt.endswith(":"):
-                    ws.write(idx, 0, txt, sec_hdr_fmt)
-                else:
-                    ws.write(idx, 0, txt)
-
             # 5) Overview table
             start_row = len(lines) + 2
             desired_cols = [
@@ -1288,21 +1261,6 @@ def main():
 
     # ─── Export controls ───────────────────────────────────────────
     display_export_section()
-
-    # ─── Procurement Assistant ─────────────────────────────────────
-    if st.button("🙋🏻 Procurement Assistant", use_container_width=True):
-        if not st.session_state.report_data:
-            st.warning("Please select at least one supplier to generate a summary.")
-        else:
-            summary = generate_chatgpt_summary(st.session_state.report_data)
-            with st.expander("View ChatGPT Summary", expanded=True):
-                st.markdown(summary)
-            st.download_button(
-                label="🙋🏻 Procurement Assistant",
-                data=summary,
-                file_name=f"Procurement_Summary_{datetime.now():%Y%m%d}.txt",
-                mime="text/plain"
-            )
 
     # ─── DSR Excel Export ──────────────────────────────────────────
     if st.button("💽 Export DSR to Excel", use_container_width=True):
