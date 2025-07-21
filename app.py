@@ -48,9 +48,6 @@ CONFIG = {
     "gpt_model": "gpt-4"
 }
 
-import streamlit as st
-# … all your other imports …
-
 # ==================== TWO-PASSWORD LOGIN ====================
 # ─── Two-password login guard ─────────────────────────────────────────────
 VALID_PASSWORDS = {"admin", "brandmanager","kingofthenorth"}  # ← your two secrets
@@ -1211,14 +1208,6 @@ def display_export_section():
 
 TITLE_LOGO_URL = "https://media.glassdoor.com/sqll/6024123/silver-eagle-beverages-squarelogo-1646829838016.png"
 
-def login():
-    pw = st.text_input("🔒 Enter password", type="password")
-    if st.button("Login"):
-        if pw in VALID_PASSWORDS:
-            st.session_state.authenticated = True
-        else:
-            st.error("❌ Incorrect password")
-
 def main():
     # ─── Top-of-page header ──────────────────────────────────────
     header_html = f"""
@@ -1237,8 +1226,10 @@ def main():
     use_remote = st.checkbox("Load Master Incoming Report from GitHub", value=True)
     if use_remote:
         st.info("Fetching 'Master Incoming Report NEW.xlsm' from GitHub…")
-        file_stream = fetch_remote_file(GITHUB_RAW_URL)
-        cache_buster=st.session_state.get("cache_buster")
+        file_stream = fetch_remote_file(
+            GITHUB_RAW_URL)
+            cache_buster=st.session_state.get("cache_buster"
+        )
     else:
         file_stream = st.file_uploader(
             "Upload 'Master Incoming Report.xlsm'",
