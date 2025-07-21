@@ -796,21 +796,38 @@ def _export_report_to_excel_bytes(
             # 1) Supplier title
             ws.write(0, 0, supplier, sup_fmt)
 
-            # 2) Logo at P1 (with error handling)
-            logo_url = supplier_logo_urls.get(supplier, "")
-            if logo_url:
-                try:
-                    resp = requests.get(logo_url, timeout=5)
-                    resp.raise_for_status()
-                    if not resp.headers.get("Content-Type", "").startswith("image/"):
-                        raise ValueError("URL did not return an image")
-                    img = Image.open(BytesIO(resp.content))
-                    w, _ = img.size
-                    scale = 220 / w
-                    bio = BytesIO(resp.content)
-                    ws.insert_image("P1", "logo.png", {"image_data": bio, "x_scale": scale, "y_scale": scale})
-                except Exception as e:
-                    print(f"Warning: could not load logo for {supplier}: {e}")
+        # ─── 2) Logo at P1 (uniform width, no row resize) ─────────────────
+        logo_url = supplier_logo_urls.get(supplier, "")
+        if logo_url:
+            try:
+                resp = requests.get(logo_url, timeout=5)
+                resp.raise_for_status()
+                if not resp.headers.get("Content-Type", "").startswith("image/"):
+                    raise ValueError("URL did not return an image")
+
+                img = Image.open(BytesIO(resp.content))
+                w, h = img.size
+
+                # target width in pixels
+                max_w = 220
+                scale = max_w / w
+
+                bio = BytesIO(resp.content)
+                ws.insert_image(
+                    "P1",
+                    "logo.png",
+                    {
+                        "image_data": bio,
+                        "x_scale": scale,
+                        "y_scale": scale,
+                        # object_position=2 makes it float above cells without resizing rows
+                        "object_position": 2,
+                        "x_offset": 5,
+                        "y_offset": 5,
+                    }
+                )
+            except Exception as e:
+                print(f"Warning: could not load logo for {supplier}: {e}")
 
             # 3) Due date as Order Day
             order_day = supplier_order_day_map.get(supplier, "").upper()
