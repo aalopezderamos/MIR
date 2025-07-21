@@ -48,6 +48,29 @@ CONFIG = {
     "gpt_model": "gpt-4"
 }
 
+# ——— Simple two-password login —————————————————————————
+VALID_PASSWORDS = {"pw1", "pw2"}  # ← your two passwords here
+
+def login():
+    pw = st.text_input("🔒 Password", type="password")
+    if st.button("Login"):
+        if pw in VALID_PASSWORDS:
+            st.session_state.authenticated = True
+        else:
+            st.error("❌ Incorrect password")
+
+def main_app():
+    # call your existing main() function once logged in
+    main()
+
+# ——— Authentication flow ————————————————————————————
+    if "authenticated" not in st.session_state:
+        login()
+    elif st.session_state.authenticated:
+        main_app()
+    else:
+        st.stop()  # safeguard: don’t run anything else
+
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
     page_title="SEB Supplier Overview", 
@@ -1158,6 +1181,14 @@ def display_export_section():
             )
 
 TITLE_LOGO_URL = "https://media.glassdoor.com/sqll/6024123/silver-eagle-beverages-squarelogo-1646829838016.png"
+
+def login():
+    pw = st.text_input("🔒 Enter password", type="password")
+    if st.button("Login"):
+        if pw in VALID_PASSWORDS:
+            st.session_state.authenticated = True
+        else:
+            st.error("❌ Incorrect password")
 
 def main():
     # ─── Top-of-page header ──────────────────────────────────────
