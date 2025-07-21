@@ -1199,7 +1199,7 @@ def main():
         alt="Silver Eagle Beverages Logo"
         style="width:64px; height:auto; margin-right:12px;"
       />
-      <h1 style="margin:0; font-size:2rem;">SEB Supplier Overview</h1>
+      <h1 style="margin:0; font-size:2rem;">SEB MIR Overview</h1>
     </div>
     """
     st.markdown(header_html, unsafe_allow_html=True)
