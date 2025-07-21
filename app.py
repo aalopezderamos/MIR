@@ -64,7 +64,7 @@ if not st.session_state.authenticated:
     if st.button("Log In"):
         if password in VALID_PASSWORDS:
             st.session_state.authenticated = True
-            st.session_state.cache_buster = datetime.now().timestamp()  # unique key to bust cache
+            st.cache_data.clear()
         else:
             st.error("❌ Incorrect password")
     
