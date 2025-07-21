@@ -52,21 +52,21 @@ import streamlit as st
 # … all your other imports …
 
 # ==================== TWO-PASSWORD LOGIN ====================
-# ─── Two-password guard ─────────────────────────────────────────────
-VALID_PASSWORDS = {"Admin","Brand Managers"}  # ← replace with your real secrets
+# ─── Two-password login guard ─────────────────────────────────────────────
+VALID_PASSWORDS = {"Admin", "Brand Manager"}  # ← your two secrets
 
-# Ensure the key exists
+# initialize the flag
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# If not yet authenticated, show only the login form and then stop
+# show login form and then halt if not yet authenticated
 if not st.session_state.authenticated:
-    st.markdown("<h1 style='text-align:center;'>🔒 Please Log In</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>🔒 Please Log In</h1>",
+                unsafe_allow_html=True)
     password = st.text_input("Password", type="password")
     if st.button("Log In"):
         if password in VALID_PASSWORDS:
             st.session_state.authenticated = True
-            st.experimental_rerun()  # triggers a fresh run, now auth passes
         else:
             st.error("❌ Incorrect password")
     st.stop()
