@@ -733,43 +733,67 @@ def _export_report_to_excel_bytes(
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         wb = writer.book
 
-        # ─── Formats ─────────────────────────────────────────────────────
-        sup_fmt           = wb.add_format({"bold": True, "font_size": 18})
-        sec_hdr_fmt       = wb.add_format({"bold": True})
-        thin_border_fmt   = wb.add_format({"border": 1})
-        date_fmt          = wb.add_format({"num_format": "mm/dd/yyyy", "border": 1})
-        hyperlink_fmt     = wb.add_format({"font_color": "#0563C0", "underline": 1, "border": 1})
-        header_fmt1       = wb.add_format({"bold": True, "bg_color": "#002060", "font_color": "#FFFFFF", "border": 1})
-        header_fmt2       = wb.add_format({"bold": True, "bg_color": "#7030A0", "font_color": "#FFFFFF", "border": 1})
-        header_fmt3       = wb.add_format({"bold": True, "bg_color": "#C5D9F1", "font_color": "#000000", "border": 1})
-        depletion_zero_fmt= wb.add_format({"font_color": "#FF0000", "border": 1})
-        days_hi_fmt       = wb.add_format({"bg_color": "#9BC2E5", "border": 1})
-        oos_good_fmt      = wb.add_format({"bg_color": "#C6EFCE", "border": 1})
-        neutral_fmt       = wb.add_format({"bg_color": "#FFEB9C", "border": 1})
-        oos_bad_fmt       = wb.add_format({"bg_color": "#FFC7CE", "border": 1})
-
-        # Tab‐color by manager
+        # ─── Tab‐color palette by Brand Manager ────────────────────────────
         manager_colors = {
-            "Tanya Marthes":       "#40E0D0",
-            "Mandiee Franco-Neff": "#FFFF00",
-            "Mark Navarro":        "#6FD66F",
-            "Dennis Diem":         "#F2C063",
-            "Ryan Mulle":          "#F47272",
+            "Tanya Marthes":       "#40E0D0",  # Turquoise
+            "Mandiee Franco-Neff": "#FFFF00",  # Yellow
+            "Mark Navarro":        "#6FD66F",  # Green
+            "Dennis Diem":         "#F2C063",  # Orange
+            "Ryan Mulle":          "#F47272",  # Red
         }
 
-        for supplier, data in supplier_data.items():
-            ws = wb.add_worksheet(supplier[:31])
-            writer.sheets[supplier[:31]] = ws
+        # ─── Excel formats ─────────────────────────────────────────────────
+        sup_fmt           = wb.add_format({"bold": True, "font_size": 18})
+        sec_hdr_fmt       = wb.add_format({"bold": True})
+        blue_fmt          = wb.add_format({"font_color": "#0070C0"})
+        red_fmt           = wb.add_format({"font_color": "#FF0000"})
+        two_dec_fmt       = wb.add_format({"num_format": "0.00", "border": 1})
+        int_fmt           = wb.add_format({"num_format": "0",    "border": 1})
+        date_fmt          = wb.add_format({"num_format": "mm/dd/yyyy", "border": 1})
+        centered_wrap_fmt = wb.add_format({"align": "center", "valign": "vcenter", "text_wrap": True})
+        due_fmt           = wb.add_format({"bold": True, "font_size": 18, "font_color": "#00B050"})
+        hyperlink_fmt     = wb.add_format({"align": "center","font_color": "#0563C0", "underline": 1, "border": 1})
+        to_order_num_fmt  = wb.add_format({"align": "center","num_format": "0", "bg_color": "#FFFF00", "border": 1})
 
+        header_fmt1 = wb.add_format({"bold": True, "bg_color": "#002060", "font_color": "#FFFFFF", "border": 1, "align": "center", "valign": "vcenter", "text_wrap": True})
+        header_fmt2 = wb.add_format({"bold": True, "bg_color": "#7030A0", "font_color": "#FFFFFF", "border": 1, "align": "center", "valign": "vcenter", "text_wrap": True})
+        header_fmt3 = wb.add_format({"bold": True, "bg_color": "#C5D9F1", "font_color": "#000000", "border": 1, "align": "center", "valign": "vcenter", "text_wrap": True})
+
+        thin_border_fmt    = wb.add_format({"border": 1})
+        thick_top_fmt      = wb.add_format({"top": 5})
+        thick_bottom_fmt   = wb.add_format({"bottom": 5})
+        thick_left_fmt     = wb.add_format({"left": 5})
+        thick_right_fmt    = wb.add_format({"right": 5})
+        to_order_date_fmt  = wb.add_format({"num_format": "mm/dd/yyyy", "bg_color": "#FFFF00", "border": 1})
+        oos_bad_fmt        = wb.add_format({"bg_color": "#FFC7CE", "font_color": "#9C0006", "border": 1})
+        oos_good_fmt       = wb.add_format({"bg_color": "#C6EFCE", "font_color": "#006100", "border": 1})
+        neutral_fmt        = wb.add_format({"bg_color": "#FFEB9C", "border": 1})
+        days_hi_fmt        = wb.add_format({"bg_color": "#9BC2E5", "border": 1})
+        depletion_zero_fmt = wb.add_format({"font_color": "#FF0000", "border": 1})
+
+        pixel_widths      = [223,91,97,70,93,70,64,69,57,77,77,68,68,68,225,225,225]
+        two_dec_cols      = {4,5}
+        int_cols          = {11,12,13}
+        next_delivery_idx = 9
+        to_order_idx      = 13
+        projected_oos_idx = 7
+
+        # ─── Build one sheet per supplier ───────────────────────────────────
+        for supplier, data in supplier_data.items():
+            sheet = supplier[:31]
+            ws = wb.add_worksheet(sheet)
+            writer.sheets[sheet] = ws
+
+            # hide gridlines & set zoom
             ws.hide_gridlines(2)
             ws.set_zoom(80)
 
-            # tab color
-            mgr = supplier_manager_map.get(supplier)
-            if mgr in manager_colors:
-                ws.set_tab_color(manager_colors[mgr])
+            # tab color by manager
+            manager = supplier_manager_map.get(supplier)
+            if manager_colors.get(manager):
+                ws.set_tab_color(manager_colors[manager])
 
-            # 1) Title
+            # 1) Supplier title
             ws.write(0, 0, supplier, sup_fmt)
 
             # 2) Logo
