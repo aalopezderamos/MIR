@@ -450,12 +450,6 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
               }
             </style>
             """,
-            unsafe_allow_html=True
-        )
-    with st.expander("Order Builder", expanded=False):
-        # ── BEGIN: Added CSS to color “To Order” column ───────────────────
-        st.markdown(
-            f"""
             <style>
               .ag-cell[col-id="To Order"],
               .ag-header-cell[col-id="To Order"] {{
