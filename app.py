@@ -613,30 +613,29 @@ def display_shortcode(supplier: str, shortcode_df: pd.DataFrame):
             "Shelf Life Days", "Expiration Date", "Receive Date",
         ]
     ].copy()
-
     if df.empty:
         st.info("No short‐code data for this supplier.")
         return
 
-    # 3) strip whitespace from column names
+    # 3) normalize column names
     df.columns = df.columns.str.strip()
 
-    # 4) detect the actual column names in case of casing/typo differences
+    # 4) detect actual column names
     daily_col = next((c for c in df.columns if "daily" in c.lower() and "sales" in c.lower()), None)
     days_col  = next((c for c in df.columns if "days" in c.lower() and "hand" in c.lower()), None)
     shelf_col = next((c for c in df.columns if "shelf life remaining" in c.lower()), None)
 
-    # 5) format date columns
+    # 5) format dates
     for dt_col in ("Code Date", "Expiration Date", "Receive Date"):
         if dt_col in df:
             df[dt_col] = pd.to_datetime(df[dt_col], errors="coerce").dt.strftime("%m/%d/%Y")
 
     st.subheader("Short Code Data")
 
-    # 6) build a Styler to format and conditionally style
+    # 6) build the Styler
     styler = df.style
 
-    # 6a) one decimal place for Daily Rate of Sales & Days on Hand
+    # 6a) one decimal place for the two numeric columns
     fmt = {}
     if daily_col:
         fmt[daily_col] = "{:.1f}"
@@ -645,17 +644,16 @@ def display_shortcode(supplier: str, shortcode_df: pd.DataFrame):
     if fmt:
         styler = styler.format(fmt)
 
-    # 6b) highlight Shelf Life Remaining in red if Days on Hand > Shelf Life Remaining
+    # 6b) highlight only the Shelf Life Remaining column if Days on Hand > Shelf Life Remaining
     if days_col and shelf_col:
-        def highlight_bad_shelf(row):
-            # returns a style for every column; only shelf_col gets a style
+        def highlight_shelf(col_series):
+            # col_series is the Shelf Life Remaining column
+            mask = df[days_col] > col_series
             return [
-                "background-color: #FFC7CE; color: #9C0006"
-                if (col == shelf_col and row[days_col] > row[shelf_col])
-                else ""
-                for col in row.index
+                "background-color: #FFC7CE; color: #9C0006" if m else ""
+                for m in mask
             ]
-        styler = styler.apply(highlight_bad_shelf, axis=1)
+        styler = styler.apply(highlight_shelf, subset=[shelf_col], axis=0)
 
     # 7) render the styled table
     st.dataframe(styler, use_container_width=True)
