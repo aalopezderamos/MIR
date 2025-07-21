@@ -48,8 +48,11 @@ CONFIG = {
     "gpt_model": "gpt-4"
 }
 
-# ——— Simple two-password login —————————————————————————
-VALID_PASSWORDS = {"pw1", "pw2"}  # ← your two passwords here
+import streamlit as st
+# … all your other imports …
+
+# ==================== TWO-PASSWORD LOGIN ====================
+VALID_PASSWORDS = {"pw1", "pw2"}  # ← put your real passwords here
 
 def login():
     pw = st.text_input("🔒 Password", type="password")
@@ -60,20 +63,20 @@ def login():
             st.error("❌ Incorrect password")
 
 def main_app():
-    # call your existing main() function once logged in
+    # once authenticated, call your existing main()
     main()
 
-# ——— Authentication flow ————————————————————————————
-    if "authenticated" not in st.session_state:
-        login()
-    elif st.session_state.authenticated:
-        main_app()
-    else:
-        st.stop()  # safeguard: don’t run anything else
+# ——— AUTH FLOW (top-level!) —————————————————————————————
+if "authenticated" not in st.session_state:
+    login()
+elif st.session_state.authenticated:
+    main_app()
+else:
+    st.stop()
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title="SEB Supplier Overview", 
+    page_title="SEB Supplier Overview",
     layout="wide"
 )
 st.markdown(
