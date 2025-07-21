@@ -52,26 +52,21 @@ import streamlit as st
 # … all your other imports …
 
 # ==================== TWO-PASSWORD LOGIN ====================
-VALID_PASSWORDS = {"pw1", "pw2"}  # ← put your real passwords here
+VALID_PASSWORDS = {"pw1", "pw2"}  # ← your two secrets here
 
 def login():
-    pw = st.text_input("🔒 Password", type="password")
-    if st.button("Login"):
+    st.markdown("<h1 style='text-align:center;'>Welcome—please log in</h1>", unsafe_allow_html=True)
+    pw = st.text_input("Password", type="password", key="pw")
+    if st.button("Log in"):
         if pw in VALID_PASSWORDS:
             st.session_state.authenticated = True
+            st.experimental_rerun()  # rerun so we fall into the app
         else:
             st.error("❌ Incorrect password")
 
-def main_app():
-    # once authenticated, call your existing main()
-    main()
-
-# ——— AUTH FLOW (top-level!) —————————————————————————————
-if "authenticated" not in st.session_state:
+# If not authenticated, show login and then stop everything
+if not st.session_state.get("authenticated", False):
     login()
-elif st.session_state.authenticated:
-    main_app()
-else:
     st.stop()
 
 # ==================== PAGE CONFIG ====================
