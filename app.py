@@ -617,25 +617,30 @@ def display_shortcode(supplier: str, shortcode_df: pd.DataFrame):
         st.info("No short‐code data for this supplier.")
         return
 
-    # 3) normalize column names
+    # 3) strip whitespace from column names
     df.columns = df.columns.str.strip()
 
-    # 4) detect actual column names
+    # 4) detect the actual column names (case‐insensitive)
     daily_col = next((c for c in df.columns if "daily" in c.lower() and "sales" in c.lower()), None)
     days_col  = next((c for c in df.columns if "days" in c.lower() and "hand" in c.lower()), None)
     shelf_col = next((c for c in df.columns if "shelf life remaining" in c.lower()), None)
 
-    # 5) format dates
+    # 5) format date columns
     for dt_col in ("Code Date", "Expiration Date", "Receive Date"):
         if dt_col in df:
             df[dt_col] = pd.to_datetime(df[dt_col], errors="coerce").dt.strftime("%m/%d/%Y")
 
+    # 6) convert our three numeric columns to floats for comparison/formatting
+    for col in (daily_col, days_col, shelf_col):
+        if col:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
     st.subheader("Short Code Data")
 
-    # 6) build the Styler
+    # 7) build the Styler
     styler = df.style
 
-    # 6a) one decimal place for the two numeric columns
+    # 7a) one decimal place for Daily Rate of Sales & Days on Hand
     fmt = {}
     if daily_col:
         fmt[daily_col] = "{:.1f}"
@@ -644,18 +649,22 @@ def display_shortcode(supplier: str, shortcode_df: pd.DataFrame):
     if fmt:
         styler = styler.format(fmt)
 
-    # 6b) highlight only the Shelf Life Remaining column if Days on Hand > Shelf Life Remaining
+    # 7b) highlight only the Shelf Life Remaining column if Days on Hand > Shelf Life Remaining
     if days_col and shelf_col:
-        def highlight_shelf(col_series):
-            # col_series is the Shelf Life Remaining column
-            mask = df[days_col] > col_series
-            return [
-                "background-color: #FFC7CE; color: #9C0006" if m else ""
-                for m in mask
-            ]
-        styler = styler.apply(highlight_shelf, subset=[shelf_col], axis=0)
+        def highlight_bad_shelf(col_series):
+            days_arr = df[days_col].to_numpy()
+            shelf_arr = col_series.to_numpy()
+            styles = []
+            for shelf_val, days_val in zip(shelf_arr, days_arr):
+                if pd.notna(shelf_val) and pd.notna(days_val) and days_val > shelf_val:
+                    styles.append("background-color: #FFC7CE; color: #9C0006")
+                else:
+                    styles.append("")
+            return styles
 
-    # 7) render the styled table
+        styler = styler.apply(highlight_bad_shelf, subset=[shelf_col], axis=0)
+
+    # 8) render the styled table
     st.dataframe(styler, use_container_width=True)
 
 def display_supplier(
