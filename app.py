@@ -452,6 +452,19 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
             """,
             unsafe_allow_html=True
         )
+    with st.expander("Order Builder", expanded=False):
+        # ── BEGIN: Added CSS to color “To Order” column ───────────────────
+        st.markdown(
+            f"""
+            <style>
+              .ag-cell[col-id="To Order"],
+              .ag-header-cell[col-id="To Order"] {{
+                background-color: {CONFIG['colors']['to_order']} !important;
+              }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
 
         editor_df = disp_df.copy()
         round_cols = ["Target DOH", "Days Until Next Delivery",
@@ -480,6 +493,8 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
                 "Order Qty": column_config.NumberColumn(format="%.0f"),
                 "PO Number": column_config.TextColumn(),
                 "Delivery Date": column_config.DateColumn(format="MM/DD/YYYY"),
+                "Product Name": column_config.Column(disabled=True),
+
             },
             num_rows="dynamic"
         )
