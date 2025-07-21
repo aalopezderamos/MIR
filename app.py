@@ -600,7 +600,7 @@ def display_shortcode(supplier: str, shortcode_df: pd.DataFrame):
         st.error("❌ Could not locate a 'Supplier' column in Short Code Data.")
         return
 
-    # 2) now filter by that real column
+    # 2) filter by supplier
     df = shortcode_df.loc[
         shortcode_df[code_sup_col] == supplier,
         [
@@ -615,38 +615,44 @@ def display_shortcode(supplier: str, shortcode_df: pd.DataFrame):
         st.info("No short‐code data for this supplier.")
         return
 
-    # 3) format your dates
+    # 3) normalize column names (strip whitespace)
+    df.columns = df.columns.str.strip()
+
+    # 4) find the actual column names in case of slight casing differences
+    daily_col = next((c for c in df.columns if "daily" in c.lower() and "sales" in c.lower()), None)
+    days_col  = next((c for c in df.columns if "days" in c.lower() and "hand" in c.lower()), None)
+    shelf_col = next((c for c in df.columns if "shelf life remaining" in c.lower()), None)
+
+    # 5) format dates
     for dt in ("Code Date", "Expiration Date", "Receive Date"):
         if dt in df:
-            df[dt] = (
-                pd.to_datetime(df[dt], errors="coerce")
-                  .dt.strftime("%m/%d/%Y")
-            )
+            df[dt] = pd.to_datetime(df[dt], errors="coerce").dt.strftime("%m/%d/%Y")
 
     st.subheader("Short Code Data")
 
-    # 4) apply styling
-    styled = (
-        df.style
-          # one decimal place for these two columns
-          .format({
-              "Daily Rate of Sales": "{:.1f}",
-              "Days on Hand": "{:.1f}"
-          })
-          # highlight shelf-life if Days on Hand > Shelf Life Remaining
-          .apply(
-              lambda row: [
-                  "background-color: #FFC7CE; color: #9C0006"
-                  if row["Days on Hand"] > row["Shelf Life Remaining"]
-                  else ""
-              ],
-              axis=1,
-              subset=["Shelf Life Remaining"]
-          )
-    )
+    # 6) build the styler
+    styler = df.style
 
-    # 5) render the styled table
-    st.dataframe(styled, use_container_width=True)
+    # 6a) one decimal place formatting
+    fmt = {}
+    if daily_col:
+        fmt[daily_col] = "{:.1f}"
+    if days_col:
+        fmt[days_col] = "{:.1f}"
+    if fmt:
+        styler = styler.format(fmt)
+
+    # 6b) conditional formatting on shelf life remaining
+    if days_col and shelf_col:
+        def bad_shelf(row):
+            return [
+                "background-color: #FFC7CE; color: #9C0006"
+                if row[days_col] > row[shelf_col] else ""
+            ]
+        styler = styler.apply(bad_shelf, axis=1, subset=[shelf_col])
+
+    # 7) render
+    st.dataframe(styler, use_container_width=True)
 
 def display_supplier(
     supplier: str,
