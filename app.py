@@ -53,7 +53,7 @@ import streamlit as st
 
 # ==================== TWO-PASSWORD LOGIN ====================
 # ─── Two-password login guard ─────────────────────────────────────────────
-VALID_PASSWORDS = {"Admin", "Brand Manager"}  # ← your two secrets
+VALID_PASSWORDS = {"admin", "brandmanager","kingofthenorth"}  # ← your two secrets
 
 # initialize the flag
 if "authenticated" not in st.session_state:
@@ -67,8 +67,10 @@ if not st.session_state.authenticated:
     if st.button("Log In"):
         if password in VALID_PASSWORDS:
             st.session_state.authenticated = True
+            st.session_state.cache_buster = datetime.now().timestamp()  # unique key to bust cache
         else:
             st.error("❌ Incorrect password")
+    
     st.stop()
 
 # ==================== PAGE CONFIG ====================
@@ -222,11 +224,7 @@ def build_export_df(data: dict) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=CONFIG["export"]["cols"])
 
 @st.cache_data(hash_funcs={io.BytesIO: lambda _: None})
-def fetch_remote_file(url: str) -> io.BytesIO:
-    """
-    Download the Excel from GitHub and wrap in a BytesIO.
-    Cached so we don’t re-download on every rerun.
-    """
+def fetch_remote_file(url: str, cache_buster=None) -> io.BytesIO:
     resp = requests.get(url, timeout=10)
     resp.raise_for_status()
     return io.BytesIO(resp.content)
@@ -1240,6 +1238,7 @@ def main():
     if use_remote:
         st.info("Fetching 'Master Incoming Report NEW.xlsm' from GitHub…")
         file_stream = fetch_remote_file(GITHUB_RAW_URL)
+        cache_buster=st.session_state.get("cache_buster")
     else:
         file_stream = st.file_uploader(
             "Upload 'Master Incoming Report.xlsm'",
