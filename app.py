@@ -1236,6 +1236,17 @@ def main():
         if not file_stream:
             return st.info("⬆️ Upload the Excel file to begin.")
 
+    # ─── Export Classic MIR Report ────────────────────────────────
+    if file_stream:
+        file_bytes = file_stream.read()
+        st.download_button(
+            label="Export Classic MIR Report",
+            data=file_bytes,
+            file_name="Classic_MIR_Report.xlsm",
+            mime="application/vnd.ms-excel"
+        )
+        file_stream.seek(0)
+
     # ─── Load sheets ────────────────────────────────────────────────
     supplier_df, po_df, overview_df = load_data(file_stream)
     shortcode_df = load_shortcode_data(file_stream)
