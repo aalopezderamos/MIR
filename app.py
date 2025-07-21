@@ -1321,21 +1321,6 @@ def main():
     # ─── Export controls ───────────────────────────────────────────
     display_export_section()
 
-    # ─── Procurement Assistant ─────────────────────────────────────
-    if st.button("🙋🏻 Procurement Assistant", use_container_width=True):
-        if not st.session_state.report_data:
-            st.warning("Please select at least one supplier to generate a summary.")
-        else:
-            summary = generate_chatgpt_summary(st.session_state.report_data)
-            with st.expander("View ChatGPT Summary", expanded=True):
-                st.markdown(summary)
-            st.download_button(
-                label="🙋🏻 Procurement Assistant",
-                data=summary,
-                file_name=f"Procurement_Summary_{datetime.now():%Y%m%d}.txt",
-                mime="text/plain"
-            )
-
     # ─── DSR Excel Export ──────────────────────────────────────────
     if st.button("💽 Export DSR to Excel", use_container_width=True):
         if not st.session_state.report_data:
