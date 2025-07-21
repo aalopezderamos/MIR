@@ -720,12 +720,12 @@ def _export_report_to_excel_bytes(
     supplier_order_day_map: dict[str, str],  # <-- new mapping for Order Day
     po_df: pd.DataFrame,
     po_col: str,
+    shortcode_df: pd.DataFrame,
 ) -> BytesIO:
     """
     Build an Excel workbook in memory containing:
       - One sheet per supplier in `supplier_data`
-      - Logos, summary, overview tables, and formatting
-      - A POs table inserted two rows below each overview, with columns reordered
+      - Logos, overview tables, PO tables, and Short-Code Data tables
       - Tab color set based on Brand Manager via supplier_manager_map
       - Gridlines turned off and zoom set to 80% on each sheet
     """
@@ -733,93 +733,67 @@ def _export_report_to_excel_bytes(
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         wb = writer.book
 
-        # ─── Tab‐color palette by Brand Manager ────────────────────────────
-        manager_colors = {
-            "Tanya Marthes":       "#40E0D0",  # Turquoise
-            "Mandiee Franco-Neff": "#FFFF00",  # Yellow
-            "Mark Navarro":        "#6FD66F",  # Green
-            "Dennis Diem":         "#F2C063",  # Orange
-            "Ryan Mulle":          "#F47272",  # Red
-        }
-
-        # ─── Excel formats ─────────────────────────────────────────────────
+        # ─── Formats ─────────────────────────────────────────────────────
         sup_fmt           = wb.add_format({"bold": True, "font_size": 18})
         sec_hdr_fmt       = wb.add_format({"bold": True})
-        blue_fmt          = wb.add_format({"font_color": "#0070C0"})
-        red_fmt           = wb.add_format({"font_color": "#FF0000"})
-        two_dec_fmt       = wb.add_format({"num_format": "0.00", "border": 1})
-        int_fmt           = wb.add_format({"num_format": "0",    "border": 1})
+        thin_border_fmt   = wb.add_format({"border": 1})
         date_fmt          = wb.add_format({"num_format": "mm/dd/yyyy", "border": 1})
-        centered_wrap_fmt = wb.add_format({"align": "center", "valign": "vcenter", "text_wrap": True})
-        due_fmt           = wb.add_format({"bold": True, "font_size": 18, "font_color": "#00B050"})
-        hyperlink_fmt     = wb.add_format({"align": "center","font_color": "#0563C0", "underline": 1, "border": 1})
-        to_order_num_fmt  = wb.add_format({"align": "center","num_format": "0", "bg_color": "#FFFF00", "border": 1})
+        hyperlink_fmt     = wb.add_format({"font_color": "#0563C0", "underline": 1, "border": 1})
+        header_fmt1       = wb.add_format({"bold": True, "bg_color": "#002060", "font_color": "#FFFFFF", "border": 1})
+        header_fmt2       = wb.add_format({"bold": True, "bg_color": "#7030A0", "font_color": "#FFFFFF", "border": 1})
+        header_fmt3       = wb.add_format({"bold": True, "bg_color": "#C5D9F1", "font_color": "#000000", "border": 1})
+        depletion_zero_fmt= wb.add_format({"font_color": "#FF0000", "border": 1})
+        days_hi_fmt       = wb.add_format({"bg_color": "#9BC2E5", "border": 1})
+        oos_good_fmt      = wb.add_format({"bg_color": "#C6EFCE", "border": 1})
+        neutral_fmt       = wb.add_format({"bg_color": "#FFEB9C", "border": 1})
+        oos_bad_fmt       = wb.add_format({"bg_color": "#FFC7CE", "border": 1})
 
-        header_fmt1 = wb.add_format({"bold": True, "bg_color": "#002060", "font_color": "#FFFFFF", "border": 1, "align": "center", "valign": "vcenter", "text_wrap": True})
-        header_fmt2 = wb.add_format({"bold": True, "bg_color": "#7030A0", "font_color": "#FFFFFF", "border": 1, "align": "center", "valign": "vcenter", "text_wrap": True})
-        header_fmt3 = wb.add_format({"bold": True, "bg_color": "#C5D9F1", "font_color": "#000000", "border": 1, "align": "center", "valign": "vcenter", "text_wrap": True})
+        # Tab‐color by manager
+        manager_colors = {
+            "Tanya Marthes":       "#40E0D0",
+            "Mandiee Franco-Neff": "#FFFF00",
+            "Mark Navarro":        "#6FD66F",
+            "Dennis Diem":         "#F2C063",
+            "Ryan Mulle":          "#F47272",
+        }
 
-        thin_border_fmt    = wb.add_format({"border": 1})
-        thick_top_fmt      = wb.add_format({"top": 5})
-        thick_bottom_fmt   = wb.add_format({"bottom": 5})
-        thick_left_fmt     = wb.add_format({"left": 5})
-        thick_right_fmt    = wb.add_format({"right": 5})
-        to_order_date_fmt  = wb.add_format({"num_format": "mm/dd/yyyy", "bg_color": "#FFFF00", "border": 1})
-        oos_bad_fmt        = wb.add_format({"bg_color": "#FFC7CE", "font_color": "#9C0006", "border": 1})
-        oos_good_fmt       = wb.add_format({"bg_color": "#C6EFCE", "font_color": "#006100", "border": 1})
-        neutral_fmt        = wb.add_format({"bg_color": "#FFEB9C", "border": 1})
-        days_hi_fmt        = wb.add_format({"bg_color": "#9BC2E5", "border": 1})
-        depletion_zero_fmt = wb.add_format({"font_color": "#FF0000", "border": 1})
-
-        pixel_widths      = [223,91,97,70,93,70,64,69,57,77,77,68,68,68,225,225,225]
-        two_dec_cols      = {4,5}
-        int_cols          = {11,12,13}
-        next_delivery_idx = 9
-        to_order_idx      = 13
-        projected_oos_idx = 7
-
-        # ─── Build one sheet per supplier ───────────────────────────────────
         for supplier, data in supplier_data.items():
-            sheet = supplier[:31]
-            ws = wb.add_worksheet(sheet)
-            writer.sheets[sheet] = ws
+            ws = wb.add_worksheet(supplier[:31])
+            writer.sheets[supplier[:31]] = ws
 
-            # hide gridlines & set zoom
             ws.hide_gridlines(2)
             ws.set_zoom(80)
 
-            # tab color by manager
-            manager = supplier_manager_map.get(supplier)
-            if manager_colors.get(manager):
-                ws.set_tab_color(manager_colors[manager])
+            # tab color
+            mgr = supplier_manager_map.get(supplier)
+            if mgr in manager_colors:
+                ws.set_tab_color(manager_colors[mgr])
 
-            # 1) Supplier title
+            # 1) Title
             ws.write(0, 0, supplier, sup_fmt)
 
-            # 2) Logo at P1 (with error handling)
+            # 2) Logo
             logo_url = supplier_logo_urls.get(supplier, "")
             if logo_url:
                 try:
                     resp = requests.get(logo_url, timeout=5)
                     resp.raise_for_status()
-                    if not resp.headers.get("Content-Type", "").startswith("image/"):
-                        raise ValueError("URL did not return an image")
                     img = Image.open(BytesIO(resp.content))
-                    w, _ = img.size
+                    w, h = img.size
                     scale = 220 / w
                     bio = BytesIO(resp.content)
                     ws.insert_image("P1", "logo.png", {"image_data": bio, "x_scale": scale, "y_scale": scale})
-                except Exception as e:
-                    print(f"Warning: could not load logo for {supplier}: {e}")
+                except:
+                    pass
 
-            # 3) Due date as Order Day
-            order_day = supplier_order_day_map.get(supplier, "").upper()
-            if order_day:
-                ws.write(0, 16, f"DUE {order_day}", due_fmt)
+            # 3) Due date
+            od = supplier_order_day_map.get(supplier, "").upper()
+            if od:
+                ws.write(0, 16, f"DUE {od}", sec_hdr_fmt)
 
-            # 5) Overview table
-            start_row = 2
-            desired_cols = [
+            # 4) Overview table
+            start_row = 5
+            cols_over = [
                 "Product Name", "Product Num", "SPID", "On Floor",
                 "Avg Weekday Depletion", "Days of Inventory",
                 "Ordered", "Projected OOS Risk", "Target DOH",
@@ -827,143 +801,104 @@ def _export_report_to_excel_bytes(
                 "Projected Inventory", "Target Inventory",
                 "To Order", "First Shipment", "Second Shipment", "Third Shipment"
             ]
-            tbl = overview_df.loc[overview_df[overview_col] == supplier, desired_cols].copy()
+            tbl = overview_df.loc[overview_df[overview_col] == supplier, cols_over].copy()
             tbl.replace([np.inf, -np.inf], np.nan, inplace=True)
             tbl.fillna("", inplace=True)
 
             # headers
-            for c, col_name in enumerate(tbl.columns):
+            for c, name in enumerate(cols_over):
                 fmt = header_fmt1 if c <= 7 else header_fmt2 if c <= 13 else header_fmt3
-                ws.write(start_row, c, col_name, fmt)
+                ws.write(start_row, c, name, fmt)
 
-            # data rows
+            # data
             for r, row in enumerate(tbl.itertuples(index=False), start=start_row+1):
                 awd, dni = row[4], row[5]
                 for c, val in enumerate(row):
                     if c == 0:
-                        style = depletion_zero_fmt if awd==0 else (
-                            days_hi_fmt if dni>30 else
-                            oos_good_fmt if dni>16 else
-                            neutral_fmt if dni>10 else
+                        style = depletion_zero_fmt if awd == 0 else (
+                            days_hi_fmt if dni > 30 else
+                            oos_good_fmt if dni > 16 else
+                            neutral_fmt if dni > 10 else
                             oos_bad_fmt
                         )
                         ws.write(r, c, val, style)
                     elif c == 1:
-                        pid = int(val) if isinstance(val, (int, float, np.integer)) else val
+                        pid = int(val) if isinstance(val, (int, float)) else val
                         url = f"https://sbsabs.encompass8.com/Home?DashboardID=100018&ProductID={pid}"
-                        ws.write_formula(r, c, f'=HYPERLINK("{url}",{pid})', hyperlink_fmt)
-                    elif c == next_delivery_idx:
+                        ws.write_formula(r, c, f'=HYPERLINK("{url}", {pid})', hyperlink_fmt)
+                    elif c in {9, 14, 15, 16} and val:
+                        # date cols: Next Delivery, First/Second/Third Shipment
                         try:
-                            dt = pd.to_datetime(val)
-                            ws.write_datetime(r, c, dt, date_fmt)
+                            ws.write_datetime(r, c, pd.to_datetime(val), date_fmt)
                         except:
                             ws.write(r, c, val)
-                    elif c == to_order_idx:
-                        num = float(val) if val not in (None,"",np.nan) else 0
-                        ws.write_number(r, c, num, to_order_num_fmt)
                     else:
-                        cell = "" if isinstance(val,(int,float)) and not math.isfinite(val) else val
-                        if c in two_dec_cols:
-                            ws.write(r, c, cell, two_dec_fmt)
-                        elif c in int_cols:
-                            ws.write(r, c, cell, int_fmt)
-                        elif c in {14,15,16} and cell:
-                            try:
-                                ship_dt = pd.to_datetime(cell)
-                                ws.write_datetime(r, c, ship_dt, date_fmt)
-                            except:
-                                ws.write(r, c, cell)
-                        else:
-                            ws.write(r, c, cell)
+                        ws.write(r, c, val, thin_border_fmt)
 
-            # ─── 6) Conditional formatting & borders ───────────────────────
+            # 5) PO table
             n = tbl.shape[0]
-            row0, rowN = start_row, start_row + n
-            last_col = min(len(tbl.columns) - 1, 16)
-
-            # a) OOS Risk
-            ws.conditional_format(
-                row0 + 1, projected_oos_idx, rowN, projected_oos_idx,
-                {"type": "cell", "criteria": ">", "value": 0, "format": oos_bad_fmt}
-            )
-            ws.conditional_format(
-                row0 + 1, projected_oos_idx, rowN, projected_oos_idx,
-                {"type": "cell", "criteria": "==", "value": 0, "format": oos_good_fmt}
-            )
-
-            # b) Thin grid inside table
-            ws.conditional_format(
-                row0, 0, rowN, last_col,
-                {"type": "no_errors", "format": thin_border_fmt}
-            )
-            # c) Thick top border
-            ws.conditional_format(
-                row0, 0, row0, last_col,
-                {"type": "no_errors", "format": thick_top_fmt}
-            )
-            # d) Thick bottom border
-            ws.conditional_format(
-                rowN, 0, rowN, last_col,
-                {"type": "no_errors", "format": thick_bottom_fmt}
-            )
-            # e) Thick left border
-            ws.conditional_format(
-                row0, 0, rowN, 0,
-                {"type": "no_errors", "format": thick_left_fmt}
-            )
-            # f) Thick right border at Q
-            ws.conditional_format(
-                row0, last_col, rowN, last_col,
-                {"type": "no_errors", "format": thick_right_fmt}
-            )
-
-            # 7) Layout tweaks
-            ws.set_row(start_row, 68 * 0.75, centered_wrap_fmt)
-            for c, px in enumerate(pixel_widths):
-                ws.set_column(c, c, px / 7.0)
-
-            # 8) Insert POs table two rows below overview
             overview_end = start_row + n
-            po_start = overview_end + 2
+            po_start     = overview_end + 2
 
-            # Section title
             ws.write(po_start, 0, f"POs for {supplier}", sec_hdr_fmt)
-
-            # Reordered headers
             po_cols = ["Product", "Purchase ID", "Receive Date", "Ordered", "PO Num"]
-            for c, col_name in enumerate(po_cols):
-                ws.write(po_start+1, c, col_name, header_fmt2)
+            for c, name in enumerate(po_cols):
+                ws.write(po_start+1, c, name, header_fmt2)
 
-            # Data rows
             mask = (
                 (po_df[po_col] == supplier)
                 & po_df["PO Num"].notna()
                 & po_df["PO Num"].astype(str).str.strip().astype(bool)
             )
             supplier_pos = po_df.loc[mask, po_cols]
+
             for r_idx, row in enumerate(supplier_pos.itertuples(index=False), start=po_start+2):
-                product, purchase_id, recv_date, ordered, po_num = row
-                ws.write(r_idx, 0, product, thin_border_fmt)
-
-                # hyperlink for Purchase ID
-                pid = int(purchase_id) if isinstance(purchase_id, (int, float)) else str(purchase_id)
-                url = f"https://sbsabs.encompass8.com/Home?DashboardID=168160&KeyValue={pid}"
-                ws.write_formula(
-                    r_idx, 1,
-                    f'=HYPERLINK("{url}", "{pid}")',
-                    hyperlink_fmt
-                )
-
-                # Receive Date
+                prod, pid_val, recv, qty, po = row
+                ws.write(r_idx, 0, prod, thin_border_fmt)
+                # link
+                pid_str = str(int(pid_val)) if isinstance(pid_val, (int, float)) else str(pid_val)
+                link = f'https://sbsabs.encompass8.com/Home?DashboardID=168160&KeyValue={pid_str}'
+                ws.write_formula(r_idx, 1, f'=HYPERLINK("{link}", "{pid_str}")', hyperlink_fmt)
+                # date
                 try:
-                    dt = pd.to_datetime(recv_date)
-                    ws.write_datetime(r_idx, 2, dt, date_fmt)
+                    ws.write_datetime(r_idx, 2, pd.to_datetime(recv), date_fmt)
                 except:
-                    ws.write(r_idx, 2, recv_date or "", thin_border_fmt)
+                    ws.write(r_idx, 2, recv or "", thin_border_fmt)
+                ws.write_number(r_idx, 3, float(qty), thin_border_fmt)
+                ws.write(r_idx, 4, po, thin_border_fmt)
 
-                ws.write_number(r_idx, 3, float(ordered), two_dec_fmt)
-                ws.write(r_idx, 4, po_num, int_fmt)
+            # 6) Short-Code Data table
+            po_rows = supplier_pos.shape[0]
+            po_end  = po_start + 1 + po_rows
+            sc_start= po_end + 2
 
+            ws.write(sc_start, 0, f"Short Code Data for {supplier}", sec_hdr_fmt)
+            sc_cols = [
+                "Product Name", "Product ID", "Supplier Family",
+                "Code Date", "Inventory", "Daily Rate of Sales",
+                "Days on Hand", "Shelf Life Remaining",
+                "Shelf Life Days", "Expiration Date", "Receive Date"
+            ]
+            for c, name in enumerate(sc_cols):
+                ws.write(sc_start+1, c, name, header_fmt2)
+
+            code_sup_col = next((c for c in shortcode_df.columns if "supplier" in c.lower()), None)
+            if code_sup_col:
+                sc_data = shortcode_df.loc[shortcode_df[code_sup_col] == supplier, sc_cols]
+            else:
+                sc_data = pd.DataFrame(columns=sc_cols)
+
+            for r, row in enumerate(sc_data.itertuples(index=False), start=sc_start+2):
+                for c, val in enumerate(row):
+                    if c in {3, 9, 10}:  # date cols
+                        try:
+                            ws.write_datetime(r, c, pd.to_datetime(val), date_fmt)
+                        except:
+                            ws.write(r, c, val or "", thin_border_fmt)
+                    else:
+                        ws.write(r, c, val, thin_border_fmt)
+
+        # done all sheets
         output.seek(0)
         return output
 
