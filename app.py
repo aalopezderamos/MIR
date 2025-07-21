@@ -720,8 +720,7 @@ def _export_report_to_excel_bytes(
     supplier_order_day_map: dict[str, str],  # <-- new mapping for Order Day
     po_df: pd.DataFrame,
     po_col: str,
-    shortcode_df: pd.DataFrame,
-) -> BytesIO:
+    shortcode_df: pd.DataFrame,) -> BytesIO:
     """
     Build an Excel workbook in memory containing:
       - One sheet per supplier in `supplier_data`
@@ -1322,7 +1321,7 @@ def main():
     display_export_section()
 
     # ─── DSR Excel Export ──────────────────────────────────────────
-    if st.button("💽 Export DSR to Excel", use_container_width=True):
+    if st.button("💽 Export MIR to Excel", use_container_width=True):
         if not st.session_state.report_data:
             st.warning("Please select at least one supplier to export.")
         else:
@@ -1350,9 +1349,9 @@ def main():
                 shortcode_df
             )
             st.download_button(
-                label="💽 Download DSR Excel Report",
+                label="💽 Download MIR Excel Report",
                 data=excel_bytes,
-                file_name=f"Procurement_Report_{datetime.now():%Y%m%d}.xlsx",
+                file_name=f"SEB-MIR_{datetime.now():%m%d%y}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
