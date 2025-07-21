@@ -52,26 +52,28 @@ import streamlit as st
 # … all your other imports …
 
 # ==================== TWO-PASSWORD LOGIN ====================
-VALID_PASSWORDS = {"pw1", "pw2"}  # ← your two secrets here
+# ─── Two-password guard ─────────────────────────────────────────────
+VALID_PASSWORDS = {"Admin","Brand Managers"}  # ← replace with your real secrets
 
-def login():
-    st.markdown("<h1 style='text-align:center;'>Welcome—please log in</h1>", unsafe_allow_html=True)
-    pw = st.text_input("Password", type="password", key="pw")
-    if st.button("Log in"):
-        if pw in VALID_PASSWORDS:
+# Ensure the key exists
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# If not yet authenticated, show only the login form and then stop
+if not st.session_state.authenticated:
+    st.markdown("<h1 style='text-align:center;'>🔒 Please Log In</h1>", unsafe_allow_html=True)
+    password = st.text_input("Password", type="password")
+    if st.button("Log In"):
+        if password in VALID_PASSWORDS:
             st.session_state.authenticated = True
-            st.experimental_rerun()  # rerun so we fall into the app
+            st.experimental_rerun()  # triggers a fresh run, now auth passes
         else:
             st.error("❌ Incorrect password")
-
-# If not authenticated, show login and then stop everything
-if not st.session_state.get("authenticated", False):
-    login()
     st.stop()
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title="SEB Supplier Overview",
+    page_title="SEB MIR Overview",
     layout="wide"
 )
 st.markdown(
