@@ -593,8 +593,7 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
 
     return po_count, po_numbers
 
-def display_shortcode(supplier: str,
-                      shortcode_df: pd.DataFrame):
+def display_shortcode(supplier: str, shortcode_df: pd.DataFrame):
     # 1) figure out which column holds “supplier” in the shortcode sheet
     code_sup_col = find_supplier_col(shortcode_df)
     if not code_sup_col:
@@ -623,8 +622,31 @@ def display_shortcode(supplier: str,
                 pd.to_datetime(df[dt], errors="coerce")
                   .dt.strftime("%m/%d/%Y")
             )
+
     st.subheader("Short Code Data")
-    st.dataframe(df, use_container_width=True)
+
+    # 4) apply styling
+    styled = (
+        df.style
+          # one decimal place for these two columns
+          .format({
+              "Daily Rate of Sales": "{:.1f}",
+              "Days on Hand": "{:.1f}"
+          })
+          # highlight shelf-life if Days on Hand > Shelf Life Remaining
+          .apply(
+              lambda row: [
+                  "background-color: #FFC7CE; color: #9C0006"
+                  if row["Days on Hand"] > row["Shelf Life Remaining"]
+                  else ""
+              ],
+              axis=1,
+              subset=["Shelf Life Remaining"]
+          )
+    )
+
+    # 5) render the styled table
+    st.dataframe(styled, use_container_width=True)
 
 def display_supplier(
     supplier: str,
