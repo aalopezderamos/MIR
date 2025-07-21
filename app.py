@@ -1226,10 +1226,8 @@ def main():
     use_remote = st.checkbox("Load Master Incoming Report from GitHub", value=True)
     if use_remote:
         st.info("Fetching 'Master Incoming Report NEW.xlsm' from GitHub…")
-        file_stream = fetch_remote_file(
-            GITHUB_RAW_URL)
-            cache_buster=st.session_state.get("cache_buster"
-        )
+        file_stream = fetch_remote_file(GITHUB_RAW_URL)
+        cache_buster=st.session_state.get("cache_buster")
     else:
         file_stream = st.file_uploader(
             "Upload 'Master Incoming Report.xlsm'",
