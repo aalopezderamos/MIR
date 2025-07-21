@@ -818,7 +818,7 @@ def _export_report_to_excel_bytes(
                 ws.write(0, 16, f"DUE {order_day}", due_fmt)
 
             # 5) Overview table
-            start_row = len(lines) + 2
+            start_row = 2
             desired_cols = [
                 "Product Name", "Product Num", "SPID", "On Floor",
                 "Avg Weekday Depletion", "Days of Inventory",
