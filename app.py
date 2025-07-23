@@ -747,7 +747,23 @@ def display_supplier(
 
     # return tuple for summary and export
     return min_order_pct, items_under_10, oos_risks, (po_count, po_numbers)
+    # ---------- helpers ------------------------------------------------------
+def _is_nan_like(v):
+        return (
+            v is None
+            or (isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)))
+        )
 
+def _write_safe(ws, r, c, v, fmt=None):
+        """Write value v safely, converting NaN/Inf to blank."""
+        if _is_nan_like(v):
+            ws.write_blank(r, c, None, fmt)
+        elif isinstance(v, (np.integer, int, np.int64)):
+            ws.write_number(r, c, int(v), fmt)
+        elif isinstance(v, (np.number, float, np.float64)):
+            ws.write_number(r, c, float(v), fmt)
+        else:
+            ws.write(r, c, str(v), fmt)
 def _export_report_to_excel_bytes(
     supplier_data: dict[str, tuple],
     overview_df: pd.DataFrame,
@@ -1048,19 +1064,25 @@ def _export_report_to_excel_bytes(
                 sc_data = shortcode_df.loc[shortcode_df[code_sup_col] == supplier, sc_cols]
             else:
                 sc_data = pd.DataFrame(columns=sc_cols)
+            # sanitize
+            sc_data = sc_data.replace([np.inf, -np.inf], np.nan)
 
-            for r, row in enumerate(sc_data.itertuples(index=False), start=sc_start+2):
+            for r, row in enumerate(sc_data.itertuples(index=False), start=sc_start + 2):
                 for c, val in enumerate(row):
-                    if c in {3, 9, 10}:  # date cols
-                        try:
-                            ws.write_datetime(r, c, pd.to_datetime(val), date_fmt)
-                        except:
-                            ws.write(r, c, val or "", thin_border_fmt)
+                    if c in {3, 9, 10}:  # date columns
+                        if _is_nan_like(val) or val == "":
+                            ws.write_blank(r, c, None, thin_border_fmt)
+                        else:
+                            try:
+                                dt = pd.to_datetime(val)
+                                ws.write_datetime(r, c, dt, date_fmt)
+                            except Exception:
+                                _write_safe(ws, r, c, val, thin_border_fmt)
                     else:
-                        ws.write(r, c, val, thin_border_fmt)
+                        _write_safe(ws, r, c, val, thin_border_fmt)
 
-        output.seek(0)
-        return output
+    output.seek(0)
+    return output
 
 def generate_chatgpt_summary(supplier_data):
     """Generate a procurement summary with bolded section headers for readability,
