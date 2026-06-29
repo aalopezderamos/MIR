@@ -139,12 +139,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-# ─── Remote file URL ───────────────────────────────────────────────
-GITHUB_RAW_URL = (
-    "https://raw.githubusercontent.com/"
-    "aalopezderamos/MIR/main/Master%20Incoming%20Report%20NEW.xlsm"
-)
-
 # ==================== HELPER FUNCTIONS ====================
 def find_supplier_col(df: pd.DataFrame) -> str | None:
     """Find supplier column case-insensitively."""
@@ -173,7 +167,10 @@ def recompute_fields(df: pd.DataFrame) -> pd.DataFrame:
     ).clip(lower=0)
     df["Target Inventory"] = df["ROS"] * df["Target DOH"]
     df["To Order"] = (df["Target Inventory"] - df["Projected Inventory"]).round(0).astype(int)
-    return df.round(2)
+    # round only numeric columns; rounding the whole frame errors on datetime cols in pandas 3.x
+    num_cols = df.select_dtypes(include=[np.number]).columns
+    df[num_cols] = df[num_cols].round(2)
+    return df
 
 def build_export_df(data: dict) -> pd.DataFrame:
     """Prepare export-ready DataFrame from session state builder inputs,
@@ -216,18 +213,14 @@ def build_export_df(data: dict) -> pd.DataFrame:
 
     return pd.DataFrame(rows, columns=CONFIG["export"]["cols"])
 
-@st.cache_data(hash_funcs={io.BytesIO: lambda _: None})
-def fetch_remote_file(url: str, cache_buster=None) -> io.BytesIO:
-    resp = requests.get(url, timeout=10)
-    resp.raise_for_status()
-    return io.BytesIO(resp.content)
-
-@st.cache_data(hash_funcs={io.BytesIO: lambda _: None})
-def load_data(file: io.BytesIO) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+@st.cache_data
+def load_data(file_bytes: bytes) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Load and parse the three sheets from the given Excel file.
-    Cached on the BytesIO contents so repeated runs are fast.
+    Load and parse the three sheets from the given Excel file bytes.
+    Cached on the raw bytes, so a newly uploaded workbook busts the cache
+    automatically instead of serving the previous file.
     """
+    file = io.BytesIO(file_bytes)
     try:
         supplier_df = pd.read_excel(file, sheet_name="Supplier Info")
         po_df       = pd.read_excel(file, sheet_name="PO Info")
@@ -261,9 +254,10 @@ def load_data(file: io.BytesIO) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFram
         # on error, return three empty DataFrames so your app won’t crash
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-@st.cache_data(hash_funcs={io.BytesIO: lambda _: None})
-def load_shortcode_data(file: io.BytesIO) -> pd.DataFrame:
-    """Load the 'Short Code Data' sheet once (cached)."""
+@st.cache_data
+def load_shortcode_data(file_bytes: bytes) -> pd.DataFrame:
+    """Load the 'Short Code Data' sheet once (cached on raw bytes)."""
+    file = io.BytesIO(file_bytes)
     df = pd.read_excel(file, sheet_name="Short Code Data")
     df.columns = df.columns.str.strip()
     return df
@@ -581,10 +575,11 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
             # pull existing or fall back to default
             current = st.session_state.get(note_key, "")
             text = st.text_area(
-                label="",
+                label=f"Notes for {supplier}",
                 value=current if current else default_note,
                 height=150,
-                key=note_key
+                key=note_key,
+                label_visibility="collapsed",
             )
 
     return po_count, po_numbers
@@ -678,7 +673,12 @@ def display_supplier(
     # ─── Header with logo + select checkbox ─────────────────────────
     col1, col2 = st.columns([1, 10])
     with col1:
-        selected = st.checkbox("", key=f"select_{supplier}", value=False)
+        selected = st.checkbox(
+            f"Select {supplier}",
+            key=f"select_{supplier}",
+            value=False,
+            label_visibility="collapsed",
+        )
     with col2:
         logo_url = None
         if "Logos" in supplier_df.columns:
@@ -1284,34 +1284,27 @@ def main():
     """
     st.markdown(header_html, unsafe_allow_html=True)
 
-    # ─── Choose data source ────────────────────────────────────────
-    use_remote = st.checkbox("Load Master Incoming Report from GitHub", value=True)
-    if use_remote:
-        st.info("Fetching 'Master Incoming Report NEW.xlsm' from GitHub…")
-        file_stream = fetch_remote_file(GITHUB_RAW_URL)
-        cache_buster=st.session_state.get("cache_buster")
-    else:
-        file_stream = st.file_uploader(
-            "Upload 'Master Incoming Report.xlsm'",
-            type=["xlsm", "xlsx"]
-        )
-        if not file_stream:
-            return st.info("⬆️ Upload the Excel file to begin.")
+    # ─── Upload data source ────────────────────────────────────────
+    uploaded = st.file_uploader(
+        "Upload 'Master Incoming Report.xlsm'",
+        type=["xlsm", "xlsx"]
+    )
+    if not uploaded:
+        return st.info("⬆️ Upload the Master Incoming Report to begin.")
+
+    file_bytes = uploaded.read()
 
     # ─── Export Classic MIR Report ────────────────────────────────
-    if file_stream:
-        file_bytes = file_stream.read()
-        st.download_button(
-            label="Export Classic MIR Report",
-            data=file_bytes,
-            file_name="Classic_MIR_Report.xlsm",
-            mime="application/vnd.ms-excel"
-        )
-        file_stream.seek(0)
+    st.download_button(
+        label="Export Classic MIR Report",
+        data=file_bytes,
+        file_name="Classic_MIR_Report.xlsm",
+        mime="application/vnd.ms-excel"
+    )
 
     # ─── Load sheets ────────────────────────────────────────────────
-    supplier_df, po_df, overview_df = load_data(file_stream)
-    shortcode_df = load_shortcode_data(file_stream)
+    supplier_df, po_df, overview_df = load_data(file_bytes)
+    shortcode_df = load_shortcode_data(file_bytes)
 
     # find supplier column in main sheets
     supplier_col = find_supplier_col(supplier_df)
