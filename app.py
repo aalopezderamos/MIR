@@ -1,11 +1,9 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
-from datetime import datetime, date
+from datetime import datetime, timedelta, date
 import numpy as np
 import io
 from streamlit import column_config
-import openai
 from docx import Document
 from docx.shared import Inches
 from docx.oxml import parse_xml
@@ -16,7 +14,6 @@ from io import BytesIO
 from xlsxwriter.utility import xl_col_to_name
 import requests
 from PIL import Image
-import requests
 
 
 # ==================== CONSTANTS ====================
@@ -44,8 +41,7 @@ CONFIG = {
         "to_order":     "#FFFF00",  # “To Order” column highlight
         "po":           "#FFF2CC",
         "order_builder":"#E1CCF0"
-    },
-    "gpt_model": "gpt-4"
+    }
 }
 
 # ==================== TWO-PASSWORD LOGIN ====================
@@ -67,7 +63,7 @@ if not st.session_state.authenticated:
             st.cache_data.clear()
         else:
             st.error("❌ Incorrect password")
-    
+
     st.stop()
 
 # ==================== PAGE CONFIG ====================
@@ -425,7 +421,7 @@ def display_overview_and_builder(supplier, overview_df, overview_col):
               .style
               .apply(lambda _: ros_colors, subset=["ROS"])
               .apply(lambda row: [product_name_color(row) if col == "Product Name" else "" for col in overview_cols], axis=1)
-              .applymap(oos_risk_color, subset=["OOS Risk"])
+              .map(oos_risk_color, subset=["OOS Risk"])
               .format({"ROS": "{:.1f}", "COH": "{:.0f}",
                        "Days of Inventory": "{:.1f}", "OOS Risk": "{:.0f}"})
               .set_table_styles([
@@ -566,8 +562,8 @@ def display_po_and_shipments(supplier, po_df, po_col, overview_df, overview_col)
                 if ship_df.empty:
                     st.info("No upcoming shipments recorded.")
                 else:
-                    det = det.reset_index(drop=True)
-                    st.dataframe(det, use_container_width=True)
+                    ship_df = ship_df.reset_index(drop=True)
+                    st.dataframe(ship_df, use_container_width=True)
 
         # ——— Notes Tab ——————————————————————————————————————————————————
         with tab_notes:
@@ -677,7 +673,7 @@ def display_supplier(
     po_col: str,
     overview_col: str,
     shortcode_df: pd.DataFrame):
-    
+
     """Display all information for a single supplier, with four full-width sections under Details."""
     # ─── Header with logo + select checkbox ─────────────────────────
     col1, col2 = st.columns([1, 10])
@@ -747,23 +743,26 @@ def display_supplier(
 
     # return tuple for summary and export
     return min_order_pct, items_under_10, oos_risks, (po_count, po_numbers)
-    # ---------- helpers ------------------------------------------------------
+
+
+# ---------- helpers ------------------------------------------------------
 def _is_nan_like(v):
-        return (
-            v is None
-            or (isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)))
-        )
+    return (
+        v is None
+        or (isinstance(v, (float, np.floating)) and (np.isnan(v) or np.isinf(v)))
+    )
 
 def _write_safe(ws, r, c, v, fmt=None):
-        """Write value v safely, converting NaN/Inf to blank."""
-        if _is_nan_like(v):
-            ws.write_blank(r, c, None, fmt)
-        elif isinstance(v, (np.integer, int, np.int64)):
-            ws.write_number(r, c, int(v), fmt)
-        elif isinstance(v, (np.number, float, np.float64)):
-            ws.write_number(r, c, float(v), fmt)
-        else:
-            ws.write(r, c, str(v), fmt)
+    """Write value v safely, converting NaN/Inf to blank."""
+    if _is_nan_like(v):
+        ws.write_blank(r, c, None, fmt)
+    elif isinstance(v, (np.integer, int, np.int64)):
+        ws.write_number(r, c, int(v), fmt)
+    elif isinstance(v, (np.number, float, np.float64)):
+        ws.write_number(r, c, float(v), fmt)
+    else:
+        ws.write(r, c, str(v), fmt)
+
 def _export_report_to_excel_bytes(
     supplier_data: dict[str, tuple],
     overview_df: pd.DataFrame,
@@ -1089,7 +1088,6 @@ def generate_chatgpt_summary(supplier_data):
        using the user-entered Notes & Next Steps if available,
        with first-person PO language including current open PO count."""
     import random
-    import streamlit as st
 
     # ─── Phrase Pools ─────────────────────────────────────────────────────────
     inventory_good_phrases = [
@@ -1140,7 +1138,7 @@ def generate_chatgpt_summary(supplier_data):
         "Lean inventory is limiting our ability to respond to fluctuations in demand.",
         "Some SKUs might need expedited replenishment to avoid disruption.",
         "We’re flagging a few areas for urgent restock consideration. Short-term risk exists if supply timelines shift or delay."
-       
+
     ]
 
     po_low_phrases = [
@@ -1168,7 +1166,7 @@ def generate_chatgpt_summary(supplier_data):
         "I’m boosting the order to align with the supplier’s MOQ and avoid delays.",
         "An adjustment to the DOH Target will allow this purchase to meet the MOQ.",
         "I’ll expand the DOH Order Target so we achieve the required MOQ.",
-        
+
     ]
     po_high_phrases = [
         "I will go ahead and place the recommended PO now that MOQ is met.",
@@ -1179,7 +1177,7 @@ def generate_chatgpt_summary(supplier_data):
         "The minimum order qty is satisfied, so I’ll finalize and submit the purchase order today.",
         "MOQ achieved; I’ll move forward with the order & place the PO into the system now.",
         "We’re at the required quantity, and I’ll dispatch the PO accordingly this afternoon for the below.",
-        "I’ll go ahead and greenlight the purchase order for the qty below.",    
+        "I’ll go ahead and greenlight the purchase order for the qty below.",
     ]
 
     blocks = []
