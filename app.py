@@ -4,14 +4,8 @@ from datetime import datetime, timedelta, date
 import numpy as np
 import io
 from streamlit import column_config
-from docx import Document
-from docx.shared import Inches
-from docx.oxml import parse_xml
-from docx.oxml.ns import nsdecls
 import math
-import re
 from io import BytesIO
-from xlsxwriter.utility import xl_col_to_name
 import requests
 from PIL import Image
 
